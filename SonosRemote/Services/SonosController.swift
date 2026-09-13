@@ -105,9 +105,9 @@ enum SonosController {
 
         if let metaEscaped = XMLHelpers.value(ofTag: "TrackMetaData", in: posXML), !metaEscaped.isEmpty {
             let meta = XMLHelpers.unescapeXML(metaEscaped)
-            info.title = XMLHelpers.value(ofTag: "dc:title", in: meta) ?? ""
-            info.artist = XMLHelpers.value(ofTag: "dc:creator", in: meta) ?? ""
-            info.album = XMLHelpers.value(ofTag: "upnp:album", in: meta) ?? ""
+            info.title = XMLHelpers.unescapeXML(XMLHelpers.value(ofTag: "dc:title", in: meta) ?? "")
+            info.artist = XMLHelpers.unescapeXML(XMLHelpers.value(ofTag: "dc:creator", in: meta) ?? "")
+            info.album = XMLHelpers.unescapeXML(XMLHelpers.value(ofTag: "upnp:album", in: meta) ?? "")
             if let art = XMLHelpers.value(ofTag: "upnp:albumArtURI", in: meta) {
                 info.albumArtURL = absoluteURL(art, relativeToHost: device.host)
             }
@@ -243,5 +243,211 @@ enum SonosController {
             if let state = try? await transportState(device), state == .stopped { return }
             try? await Task.sleep(nanoseconds: 300_000_000)
         }
+    }
+
+    // MARK: - Browse (Favorites / Playlists / Local Library / Queue)
+
+    /// Raw `ContentDirectory.Browse` call. `objectID` is a Sonos-defined root
+    /// like `FV:2` (Favorites), `SQ:` (Playlists), `A:ALBUM` (local library),
+    /// or `Q:0` (the current queue) — or any container `id` returned by a
+    /// previous browse, to drill in further.
+    static func browse(
+        _ device: SonosDevice, objectID: String,
+        startingIndex: Int = 0, requestedCount: Int = 200
+    ) async throws -> [BrowseItem] {
+        let xml = try await SOAPClient.call(
+            host: device.host, service: .contentDirectory, action: "Browse",
+            arguments: [
+                ("ObjectID", objectID),
+                ("BrowseFlag", "BrowseDirectChildren"),
+                ("Filter", "*"),
+                ("StartingIndex", "\(startingIndex)"),
+                ("RequestedCount", "\(requestedCount)"),
+                ("SortCriteria", "")
+            ]
+        )
+        guard let resultEscaped = XMLHelpers.value(ofTag: "Result", in: xml) else { return [] }
+        let didl = XMLHelpers.unescapeXML(resultEscaped)
+        return DIDLParser.parseItems(from: didl, host: device.host)
+    }
+
+    static func browseFavorites(_ device: SonosDevice) async throws -> [BrowseItem] {
+        try await browse(device, objectID: BrowseRoot.favorites)
+    }
+
+    static func browsePlaylists(_ device: SonosDevice) async throws -> [BrowseItem] {
+        try await browse(device, objectID: BrowseRoot.playlists)
+    }
+
+    static func getQueue(_ device: SonosDevice) async throws -> [BrowseItem] {
+        try await browse(device, objectID: BrowseRoot.queue)
+    }
+
+    /// Plays a Favorite, Playlist, local-library album/track, or any other
+    /// browse result. Favorites already carry a self-contained, directly
+    /// playable URI+metadata; containers (playlists/albums/folders) are
+    /// played by replacing the queue and pointing the transport at it — the
+    /// same mechanism Sonos' own apps use.
+    static func play(_ item: BrowseItem, on device: SonosDevice) async throws {
+        if item.isContainer {
+            _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "RemoveAllTracksFromQueue")
+            _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "AddURIToQueue",
+                                           arguments: [("InstanceID", "0"), ("EnqueuedURI", item.uri),
+                                                       ("EnqueuedURIMetaData", item.metadata),
+                                                       ("DesiredFirstTrackNumberEnqueued", "0"), ("EnqueueAsNext", "1")])
+            _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "SetAVTransportURI",
+                                           arguments: [("InstanceID", "0"), ("CurrentURI", "x-rincon-queue:\(device.uuid)#0"),
+                                                       ("CurrentURIMetaData", "")])
+        } else {
+            _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "SetAVTransportURI",
+                                           arguments: [("InstanceID", "0"), ("CurrentURI", item.uri),
+                                                       ("CurrentURIMetaData", item.metadata)])
+        }
+        try await play(device)
+    }
+
+    // MARK: - Queue management
+
+    static func playFromQueue(_ device: SonosDevice, trackNumber: Int) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "Seek",
+                                       arguments: [("InstanceID", "0"), ("Unit", "TRACK_NR"), ("Target", "\(trackNumber)")])
+        try await play(device)
+    }
+
+    static func removeFromQueue(_ device: SonosDevice, trackNumber: Int) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "RemoveTrackFromQueue",
+                                       arguments: [("InstanceID", "0"), ("ObjectID", "Q:0/\(trackNumber)"), ("UpdateID", "0")])
+    }
+
+    static func clearQueue(_ device: SonosDevice) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "RemoveAllTracksFromQueue")
+    }
+
+    /// Moves the track at `fromNumber` (1-based, as returned by the queue
+    /// browse) to just before `toNumber`.
+    static func reorderQueue(_ device: SonosDevice, fromTrackNumber: Int, toTrackNumber: Int) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "ReorderTracksInQueue",
+                                       arguments: [("InstanceID", "0"), ("StartingIndex", "\(fromTrackNumber)"),
+                                                   ("NumberOfTracks", "1"), ("InsertBefore", "\(toTrackNumber)"),
+                                                   ("UpdateID", "0")])
+    }
+
+    // MARK: - Sleep timer
+
+    static func setSleepTimer(_ device: SonosDevice, seconds: Int?) async throws {
+        let duration: String
+        if let seconds, seconds > 0 {
+            duration = String(format: "%02d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, seconds % 60)
+        } else {
+            duration = ""
+        }
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "ConfigureSleepTimer",
+                                       arguments: [("InstanceID", "0"), ("NewSleepTimerDuration", duration)])
+    }
+
+    /// Remaining seconds, or nil if no sleep timer is set.
+    static func getSleepTimer(_ device: SonosDevice) async throws -> Int? {
+        let xml = try await SOAPClient.call(host: device.host, service: .avTransport, action: "GetRemainingSleepTimerDuration")
+        guard let remaining = XMLHelpers.value(ofTag: "RemainingSleepTimerDuration", in: xml), !remaining.isEmpty else { return nil }
+        return XMLHelpers.seconds(fromSonosTime: remaining)
+    }
+
+    // MARK: - EQ (bass / treble / loudness)
+
+    static func getBass(_ device: SonosDevice) async throws -> Int {
+        let xml = try await SOAPClient.call(host: device.host, service: .renderingControl, action: "GetBass")
+        return Int(XMLHelpers.value(ofTag: "CurrentBass", in: xml) ?? "0") ?? 0
+    }
+
+    static func setBass(_ device: SonosDevice, to value: Int) async throws {
+        let clamped = max(-10, min(10, value))
+        _ = try await SOAPClient.call(host: device.host, service: .renderingControl, action: "SetBass",
+                                       arguments: [("InstanceID", "0"), ("DesiredBass", "\(clamped)")])
+    }
+
+    static func getTreble(_ device: SonosDevice) async throws -> Int {
+        let xml = try await SOAPClient.call(host: device.host, service: .renderingControl, action: "GetTreble")
+        return Int(XMLHelpers.value(ofTag: "CurrentTreble", in: xml) ?? "0") ?? 0
+    }
+
+    static func setTreble(_ device: SonosDevice, to value: Int) async throws {
+        let clamped = max(-10, min(10, value))
+        _ = try await SOAPClient.call(host: device.host, service: .renderingControl, action: "SetTreble",
+                                       arguments: [("InstanceID", "0"), ("DesiredTreble", "\(clamped)")])
+    }
+
+    static func getLoudness(_ device: SonosDevice) async throws -> Bool {
+        let xml = try await SOAPClient.call(host: device.host, service: .renderingControl, action: "GetLoudness",
+                                             arguments: [("InstanceID", "0"), ("Channel", "Master")])
+        return XMLHelpers.value(ofTag: "CurrentLoudness", in: xml) == "1"
+    }
+
+    static func setLoudness(_ device: SonosDevice, enabled: Bool) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .renderingControl, action: "SetLoudness",
+                                       arguments: [("InstanceID", "0"), ("Channel", "Master"), ("DesiredLoudness", enabled ? "1" : "0")])
+    }
+
+    // MARK: - Alarms
+
+    static func listAlarms(_ device: SonosDevice) async throws -> [SonosAlarm] {
+        let xml = try await SOAPClient.call(host: device.host, service: .alarmClock, action: "ListAlarms")
+        guard let listEscaped = XMLHelpers.value(ofTag: "CurrentAlarmList", in: xml) else { return [] }
+        let list = XMLHelpers.unescapeXML(listEscaped)
+        let alarmAttrs = XMLHelpers.attributeValues(tag: "Alarm", attribute: "ID", in: list)
+        return alarmAttrs.compactMap { attrs in
+            guard let id = attrs["ID"] else { return nil }
+            return SonosAlarm(
+                id: id,
+                startTime: attrs["StartTime"] ?? "07:00:00",
+                duration: attrs["Duration"] ?? "01:00:00",
+                recurrence: attrs["Recurrence"] ?? "DAILY",
+                enabled: attrs["Enabled"] == "1",
+                roomUUID: attrs["RoomUUID"] ?? device.uuid,
+                programURI: attrs["ProgramURI"] ?? "x-rincon-buzzer:0",
+                programMetaData: attrs["ProgramMetaData"] ?? "",
+                playMode: attrs["PlayMode"] ?? "NORMAL",
+                volume: Int(attrs["Volume"] ?? "30") ?? 30,
+                includeLinkedZones: attrs["IncludeLinkedZones"] == "1"
+            )
+        }
+    }
+
+    /// Creates a new alarm. Defaults to the built-in Sonos chime
+    /// (`x-rincon-buzzer:0`) so it works without picking a music source.
+    static func createAlarm(
+        device: SonosDevice, startTime: String, duration: String = "00:30:00",
+        recurrence: String = "DAILY", volume: Int = 30
+    ) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .alarmClock, action: "CreateAlarm",
+                                       arguments: [
+                                           ("StartLocalTime", startTime), ("Duration", duration),
+                                           ("Recurrence", recurrence), ("Enabled", "1"),
+                                           ("RoomUUID", device.uuid), ("ProgramURI", "x-rincon-buzzer:0"),
+                                           ("ProgramMetaData", ""), ("PlayMode", "NORMAL"),
+                                           ("Volume", "\(volume)"), ("IncludeLinkedZones", "0")
+                                       ])
+    }
+
+    static func updateAlarm(_ alarm: SonosAlarm, on device: SonosDevice) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .alarmClock, action: "UpdateAlarm",
+                                       arguments: [
+                                           ("ID", alarm.id), ("StartLocalTime", alarm.startTime),
+                                           ("Duration", alarm.duration), ("Recurrence", alarm.recurrence),
+                                           ("Enabled", alarm.enabled ? "1" : "0"), ("RoomUUID", alarm.roomUUID),
+                                           ("ProgramURI", alarm.programURI), ("ProgramMetaData", alarm.programMetaData),
+                                           ("PlayMode", alarm.playMode), ("Volume", "\(alarm.volume)"),
+                                           ("IncludeLinkedZones", alarm.includeLinkedZones ? "1" : "0")
+                                       ])
+    }
+
+    static func setAlarmEnabled(_ alarm: SonosAlarm, enabled: Bool, on device: SonosDevice) async throws {
+        var updated = alarm
+        updated.enabled = enabled
+        try await updateAlarm(updated, on: device)
+    }
+
+    static func deleteAlarm(_ alarm: SonosAlarm, on device: SonosDevice) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .alarmClock, action: "DestroyAlarm",
+                                       arguments: [("ID", alarm.id)])
     }
 }

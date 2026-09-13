@@ -13,7 +13,9 @@ final class SonosViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var selectedGroupID: String?
 
+    #if os(macOS)
     let intercom = IntercomService()
+    #endif
 
     private var pollTask: Task<Void, Never>?
 
@@ -35,14 +37,40 @@ final class SonosViewModel: ObservableObject {
     }
 
     func start() {
+        setUpLiveEvents()
         Task { await refreshTopology() }
+        // GENA push events (see setUpLiveEvents) handle near-instant updates;
+        // this poll is just the safety net for anything a dropped/missed
+        // event notification would otherwise leave stale.
         pollTask?.cancel()
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
                 await self?.refreshNowPlayingAndVolumes()
             }
         }
+    }
+
+    /// Wires GENA (UPnP eventing) push notifications straight into our
+    /// published state, so play/pause/volume changes — including ones made
+    /// from the official Sonos app or a physical remote — appear immediately
+    /// instead of waiting for the next poll.
+    private func setUpLiveEvents() {
+        let manager = GENASubscriptionManager.shared
+        manager.onTransportChange = { [weak self] host, state in
+            guard let self, let group = self.groups.first(where: { $0.coordinator?.host == host }) else { return }
+            self.transportStates[group.id] = state
+            Task { await self.refreshNowPlaying(for: group) }
+        }
+        manager.onVolumeChange = { [weak self] host, volume in
+            guard let self, let device = self.allDevices.first(where: { $0.host == host }) else { return }
+            self.deviceVolumes[device.uuid] = volume
+            if let group = self.group(containing: device), group.coordinatorUUID == device.uuid {
+                self.groupVolumes[group.id] = volume
+            }
+            self.publishWidgetSnapshot()
+        }
+        manager.start()
     }
 
     func refreshTopology() async {
@@ -58,7 +86,18 @@ final class SonosViewModel: ObservableObject {
         if selectedGroupID == nil || !discovered.contains(where: { $0.id == selectedGroupID }) {
             selectedGroupID = discovered.first?.id
         }
+        await GENASubscriptionManager.shared.updateSubscriptions(coordinatorHosts: discovered.compactMap { $0.coordinator?.host })
         await refreshNowPlayingAndVolumes()
+    }
+
+    /// Refreshes just one group's now-playing/transport/volume — used after a
+    /// GENA transport-change event so we don't wait for the full poll cycle
+    /// just to pick up the new track's title/artist/art.
+    private func refreshNowPlaying(for group: SonosGroup) async {
+        guard let coordinator = group.coordinator else { return }
+        if let track = try? await SonosController.trackInfo(coordinator) { nowPlaying[group.id] = track }
+        if let state = try? await SonosController.transportState(coordinator) { transportStates[group.id] = state }
+        publishWidgetSnapshot()
     }
 
     func refreshNowPlayingAndVolumes() async {

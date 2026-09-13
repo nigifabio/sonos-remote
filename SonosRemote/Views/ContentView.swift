@@ -3,6 +3,9 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var vm: SonosViewModel
     @State private var showingIntercom = false
+    @State private var showingLibrary = false
+    @State private var showingQueue = false
+    @State private var showingAlarms = false
 
     var body: some View {
         NavigationSplitView {
@@ -39,6 +42,30 @@ struct ContentView: View {
                 .help(vm.isPartyMode ? "Split rooms back apart" : "Group every room together")
 
                 Button {
+                    showingLibrary = true
+                } label: {
+                    Label("Library", systemImage: "music.note.list")
+                }
+                .disabled(vm.selectedGroup == nil)
+                .help("Browse Favorites, Playlists, and your Music Library")
+
+                Button {
+                    showingQueue = true
+                } label: {
+                    Label("Queue", systemImage: "list.number")
+                }
+                .disabled(vm.selectedGroup == nil)
+                .help("View and manage the play queue")
+
+                Button {
+                    showingAlarms = true
+                } label: {
+                    Label("Alarms", systemImage: "alarm")
+                }
+                .disabled(vm.allDevices.isEmpty)
+                .help("Alarms and sleep timer")
+
+                Button {
                     showingIntercom = true
                 } label: {
                     Label("Intercom", systemImage: "mic.circle.fill")
@@ -54,6 +81,19 @@ struct ContentView: View {
         .sheet(isPresented: $showingIntercom) {
             IntercomView(intercom: vm.intercom)
                 .environmentObject(vm)
+        }
+        .sheet(isPresented: $showingLibrary) {
+            if let group = vm.selectedGroup {
+                LibraryView(group: group)
+            }
+        }
+        .sheet(isPresented: $showingQueue) {
+            if let group = vm.selectedGroup {
+                QueueView(group: group)
+            }
+        }
+        .sheet(isPresented: $showingAlarms) {
+            AlarmsView().environmentObject(vm)
         }
         .overlay(alignment: .top) {
             if let error = vm.errorMessage, !vm.groups.isEmpty {

@@ -1,37 +1,72 @@
 # Sonos Remote
 
-A native SwiftUI Mac app (Apple Silicon) for controlling your Sonos system.
-No cloud, no background server — it talks directly to your speakers over
-local UPnP/SOAP on port 1400, the same protocol Sonos' own apps use.
+A native SwiftUI app for controlling your Sonos system — a Mac app (Apple
+Silicon) plus an iOS/iPadOS companion. No cloud, no background server: it
+talks directly to your speakers over local UPnP/SOAP on port 1400, the same
+protocol Sonos' own apps use, and gets instant state updates via UPnP
+eventing (GENA) instead of just polling.
 
 ## Features
 
 - **Auto-discovery** of every room via SSDP + `ZoneGroupTopology`.
+- **Live updates via GENA eventing**: subscribes to each room's AVTransport
+  and RenderingControl events, so play/pause/volume changes — including ones
+  made from the official Sonos app or a physical remote — appear instantly.
+  A 30s poll remains as a safety net for anything a dropped event would
+  otherwise leave stale.
 - **Now playing**: album art, title/artist/album, transport controls, live position.
+- **Favorites, Playlists & local Music Library**: browse everything you've
+  already set up in the official Sonos app — including Spotify/Apple Music
+  content added as a Favorite or Playlist — and play it with one tap. Sonos
+  doesn't let third parties inject an arbitrary streaming service directly
+  (that needs their SMAPI partner program), but Favorites/Playlists are just
+  more `ContentDirectory` Browse + `AVTransport` Play calls, so this gives
+  one-tap access with no OAuth needed on our side.
+- **Queue management**: view, reorder (drag), remove, and jump to any track
+  in the current play queue.
+- **Alarms & sleep timer**: list/create/enable/delete alarms (ring with the
+  built-in Sonos chime), and set a per-room sleep timer.
+- **Bass/treble/loudness (EQ)** controls per physical speaker.
 - **Party Mode**: one click groups every room together (or splits them back apart).
 - **Per-room pair/unpair**: right-click any room in the sidebar to join it into
   another room's group, or split it back out on its own.
 - **Volume sliders**: one general slider per room/group, plus individual sliders
   for each physical speaker when rooms are grouped.
-- **Intercom**: hold a push-to-talk button (with a microphone picker if you
-  have more than one input device), speak, release — your voice plays as an
-  announcement on the room(s) you pick, then whatever was playing there
-  resumes automatically. (Sonos has no live-mic-streaming API for third-party
-  apps, so this uses record → play-announcement → restore, the same pattern
-  Sonos' own voice assistants and doorbell integrations use.)
-- **Menu bar tray**: a custom icon in the menu bar opens a compact popover
-  listing every room with its own volume slider, play/pause, and now-playing
-  track, plus a Party Mode switch — without opening the main window.
+- **Intercom** (Mac only): hold a push-to-talk button (with a microphone
+  picker if you have more than one input device), speak, release — your
+  voice plays as an announcement on the room(s) you pick, then whatever was
+  playing there resumes automatically. Sonos has no live-mic-streaming API
+  for third-party apps, so this uses record → play-announcement → restore,
+  the same pattern Sonos' own voice assistants and doorbell integrations use.
+- **Shortcuts / Siri support**: play/pause a room, skip, set volume, and
+  toggle Party Mode are all exposed as `AppIntent`s with Siri phrases — ask
+  Siri or build a Shortcuts automation without opening the app.
+- **Menu bar tray** (Mac only): a custom icon in the menu bar opens a compact
+  popover listing every room with its own volume slider, play/pause, and
+  now-playing track, plus a Party Mode switch — without opening the main window.
 - **Settings**: light/dark/system appearance, start-at-login, live status for
   every permission the app uses (with one-click links to the right System
   Settings pane), and an About section.
-- **Optional live Widget** — see below.
+- **Optional live Widget** (Mac only) — see below.
+
+## Platforms
+
+- **Mac** (`SonosRemote` scheme): full feature set, Apple Silicon, macOS 14+.
+- **iOS/iPadOS** (`SonosRemoteiOS` scheme): everything above except the menu
+  bar tray, the widget, and Intercom (which needs the Mac-only Core Audio
+  input-device picker) — that's a documented gap, not a protocol limitation;
+  see "Suggested next features" below.
+
+Both targets share `Models`, `Networking`, `Services`, and `ViewModels`
+unchanged — none of it depends on AppKit or Core Audio, so the same
+discovery/SOAP/GENA code and the same `SonosViewModel` run on both platforms.
 
 ## Requirements
 
-- Apple Silicon Mac, macOS 14 (Sonoma) or later
+- Apple Silicon Mac, macOS 14 (Sonoma) or later, for the Mac app
+- iOS/iPadOS 17+ device or simulator, for the companion app
 - Xcode 15+
-- Same LAN as your Sonos speakers
+- Same LAN/Wi-Fi as your Sonos speakers
 - [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) to (re)generate the `.xcodeproj`
 
 ## Build & run
@@ -41,12 +76,14 @@ xcodegen generate
 open SonosRemote.xcodeproj
 ```
 
-Then hit Run in Xcode (scheme **SonosRemote**). On first launch, macOS will ask for:
+Then hit Run in Xcode with the **SonosRemote** (Mac) or **SonosRemoteiOS**
+scheme. On first launch, the OS will ask for:
 - **Local Network** access (to find and control your Sonos speakers)
-- **Microphone** access (for the Intercom feature)
+- **Microphone** access (Mac only, for the Intercom feature)
 
-Grant both — the app doesn't work without them. You can review and re-open
-either permission's System Settings pane at any time from Settings ▸ Permissions.
+Grant both — the app doesn't work without Local Network access. On Mac you
+can review and re-open either permission's System Settings pane at any time
+from Settings ▸ Permissions.
 
 ### Command line
 
@@ -56,6 +93,14 @@ xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemote -configuration Deb
 open "$(find ~/Library/Developer/Xcode/DerivedData -iname 'SonosRemote.app' | head -1)"
 ```
 
+For iOS, build against the simulator SDK (downloads the iOS platform via
+Xcode ▸ Settings ▸ Components the first time, if you haven't already):
+
+```bash
+xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemoteiOS \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+```
+
 ### Tests
 
 ```bash
@@ -63,13 +108,13 @@ xcodegen generate
 xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemoteTests -destination 'platform=macOS,arch=arm64' test
 ```
 
-Covers the XML/SOAP parsing (including a regression test for a real bug where
-`upnp:album` matched inside `upnp:albumArtURI`), zone-topology parsing against
-realistic fixtures, the WAV file builder used by Intercom (covers a real crash
-fix — see below), `SonosViewModel`'s pure logic, and the widget's shared-state
+Covers XML/SOAP/DIDL parsing (including regression tests for two real bugs —
+see below), zone-topology parsing against realistic fixtures, the WAV file
+builder used by Intercom, GENA event parsing (`LastChange` → transport
+state/volume), `SonosViewModel`'s pure logic, and the widget's shared-state
 JSON encoding.
 
-## Optional: live Widget
+## Optional: live Widget (Mac)
 
 `SonosWidget/` is a WidgetKit extension you can add to Notification Center /
 the desktop: pick a room per widget instance, see its now-playing track, and
@@ -103,31 +148,51 @@ To enable it:
 
 ```
 SonosRemote/
-  App/            App entry point (main window scene, tray scene, Settings scene)
-  Models/         SonosDevice, SonosGroup, TrackInfo, TransportSnapshot, AppTheme
-  Networking/     SSDP discovery, raw SOAP client, XML helpers
-  Services/       SonosController (all Sonos actions), LocalHTTPServer
-                  (serves intercom clips), IntercomService (record/broadcast),
-                  AudioDeviceManager (Core Audio input device enumeration)
+  App/            Mac app entry point (main window scene, tray scene, Settings scene)
+  Shortcuts/      Siri/Shortcuts AppIntents + AppShortcutsProvider (Mac; do live discovery)
+  Models/         SonosDevice, SonosGroup, TrackInfo, BrowseItem, SonosAlarm, AppTheme...
+  Networking/     SSDP discovery, raw SOAP client, XML/DIDL parsing
+  Services/       SonosController (all Sonos actions incl. Browse/Queue/Alarms/EQ),
+                  LocalHTTPServer (serves intercom clips), GENAEventServer +
+                  GENASubscriptionManager (UPnP push eventing), IntercomService,
+                  AudioDeviceManager (Mac-only: Core Audio input device enumeration)
   Shared/         WidgetSharedState — the App-Group-backed snapshot the main
                   app writes and the widget extension reads
-  ViewModels/     SonosViewModel — polls topology/now-playing every 3s
-  Views/          SwiftUI screens (main window, sidebar, tray popover, settings)
-SonosWidget/      Optional WidgetKit extension (see above)
+  ViewModels/     SonosViewModel — GENA-driven with a 30s poll fallback
+  Views/          SwiftUI screens shared by both platforms (sidebar, now-playing,
+                  Library, Queue, Alarms, EQ), plus Mac-only ones (tray, Settings, Intercom)
+SonosRemoteiOS/   iOS/iPadOS app entry point + iOS-specific root/settings views
+SonosWidget/      Optional Mac WidgetKit extension (see above)
 SonosRemoteTests/ Unit tests
 ```
 
 `SonosController` is a stateless enum of async functions — one call per
-Sonos UPnP action (Play, SetVolume, SetAVTransportURI, GetZoneGroupState,
-etc.). No third-party Sonos library is used; the SOAP envelopes and XML
-parsing are implemented directly against Sonos' documented local API.
+Sonos UPnP action (Play, SetVolume, SetAVTransportURI, Browse, ListAlarms,
+ConfigureSleepTimer, SetBass, etc.) across AVTransport, RenderingControl,
+GroupRenderingControl, ZoneGroupTopology, ContentDirectory, and AlarmClock.
+No third-party Sonos library is used; every SOAP envelope and XML/DIDL
+response is parsed directly against Sonos' documented local API.
 
-Intercom flow: record from the chosen mic via `AVAudioEngine` → convert to
-16-bit/44.1kHz mono PCM → build a WAV file by hand (see "Notable bugs fixed"
-below) → served over a tiny local HTTP server on this Mac (`LocalHTTPServer`,
-port 57123) → each target room's current track/position/URI is snapshotted →
-the clip plays via `SetAVTransportURI` + `Play` → once it finishes, the
-room's previous state is restored.
+**Favorites/Playlists/Library playback** (`SonosController.play(_:on:)`):
+Favorites carry a self-contained, directly playable URI+metadata, so they
+just go straight into `SetAVTransportURI` + `Play`. Playlists and local
+Music Library containers (albums, artists) are played by replacing the
+queue — `RemoveAllTracksFromQueue` + `AddURIToQueue` with the container's
+own URI (Sonos expands it into individual tracks) + `SetAVTransportURI`
+pointed at the queue — the same mechanism Sonos' own apps use.
+
+**Live updates**: `GENASubscriptionManager` SUBSCRIBEs to each group
+coordinator's AVTransport/RenderingControl event URLs with a CALLBACK
+pointing at `GENAEventServer` (a tiny local HTTP server), renews before the
+5-minute timeout, and parses each NOTIFY's `LastChange` payload into a plain
+transport-state or volume change that `SonosViewModel` applies immediately.
+
+**Intercom flow** (Mac only): record from the chosen mic via `AVAudioEngine`
+→ convert to 16-bit/44.1kHz mono PCM → build a WAV file by hand (see
+"Notable bugs fixed" below) → served over `LocalHTTPServer` (port 57123) →
+each target room's current track/position/URI is snapshotted → the clip
+plays via `SetAVTransportURI` + `Play` → once it finishes, the room's
+previous state is restored.
 
 ## Notable bugs fixed along the way
 
@@ -141,41 +206,33 @@ room's previous state is restored.
   the file's *processing* format, which for PCM is always float32 regardless
   of the on-disk settings requested. Fixed by building the WAV file by hand
   (RIFF header + raw PCM bytes) instead of going through `AVAudioFile` at all.
+- **Accidental deletion of `SOAPClient`**: an edit meant to add two new
+  `SonosService` cases briefly overwrote the whole file, dropping the actual
+  `SOAPClient.call` implementation. Caught immediately by a standalone
+  compile check before it reached the app — a reminder to always rebuild
+  after editing a file that's this central.
 
 ## Known limitations
 
-- State updates are polled every 3s, not pushed via UPnP eventing (GENA) —
-  good enough for a personal remote, but not instant.
 - Party Mode always groups under the first-listed room's coordinator.
 - The app is ad-hoc signed ("Sign to Run Locally") — fine for building and
-  running on your own Mac(s), but macOS Gatekeeper will warn on a machine
-  that didn't build it (right-click ▸ Open bypasses this once).
+  running on your own devices, but Gatekeeper will warn on a Mac that didn't
+  build it (right-click ▸ Open bypasses this once), and the iOS app can only
+  run on devices you've registered for local development.
+- GENA subscriptions cover the group coordinator's AVTransport and
+  RenderingControl only; per-satellite-speaker volume and topology changes
+  (a room joining/leaving a group) are still picked up by the 30s poll, not
+  pushed instantly.
 
 ## Suggested next features
 
-Not implemented — ideas for where this could go next:
-
-- **Streaming service integration (Spotify / Apple Music)**: Sonos doesn't
-  give third parties a way to inject an arbitrary Spotify/Apple Music stream
-  directly — that requires registering as a Sonos "Music Service" partner via
-  their SMAPI program. The practical near-term path is to surface whatever
-  you've already linked as **Sonos Favorites** or **Playlists** (both are
-  just more `ContentDirectory` browse + `AVTransport` play calls, the same
-  pattern already used everywhere in `SonosController`) — that gives one-tap
-  access to Spotify/Apple Music content already set up in the official Sonos
-  app, no OAuth needed on our side.
-- **Local music library browsing**: Sonos can browse/play a local library
-  share directly from its own `ContentDirectory` service; adding `Browse`
-  support to `SonosController` would let this app list and play anything
-  already shared with your Sonos system (e.g. from a NAS or this Mac).
-- **Queue management UI**: view/reorder/remove from the current play queue.
-- **Alarms & sleep timer**: Sonos exposes both over UPnP; would fit naturally
-  as another `SonosController` section plus a small Settings-adjacent screen.
-- **Bass/treble/loudness (EQ) controls** per room, via `RenderingControl`.
-- **Shortcuts / Siri support**: the widget's `AppIntent`s (play/pause, skip,
-  volume, party mode) already exist — exposing them as a Shortcuts app
-  integration is mostly just adding `AppShortcutsProvider` metadata.
-- **Live updates via GENA eventing** instead of polling, for instant UI
-  updates and lower network chatter.
-- **iOS/iPadOS companion app**, sharing all of `Models`/`Networking`/`Services`
-  unchanged since none of it is macOS-specific.
+- **Intercom on iOS**: needs an iOS-appropriate input picker (iOS doesn't
+  have Core Audio's HAL device model — it's `AVAudioSession` route picking
+  instead), so this is a real platform difference, not just missing UI.
+- **GENA for `ZoneGroupTopology`**: subscribing to topology change events
+  would make room grouping/ungrouping (including from the official app)
+  reflect instantly instead of waiting for the 30s poll.
+- **Drag-and-drop room grouping UI**, as an alternative to the context menu.
+- **watchOS complication / CarPlay** for the most common controls.
+- **Notarized, signed distribution** (currently ad-hoc only) — needs a paid
+  Apple Developer Program membership to notarize the `.pkg` for Gatekeeper.

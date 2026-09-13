@@ -3,6 +3,7 @@ import SwiftUI
 struct GroupDetailView: View {
     @EnvironmentObject var vm: SonosViewModel
     let group: SonosGroup
+    @State private var eqTarget: SonosDevice?
 
     private var track: TrackInfo { vm.nowPlaying[group.id] ?? TrackInfo() }
     private var isPlaying: Bool { vm.transportStates[group.id] == .playing }
@@ -21,6 +22,9 @@ struct GroupDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle(group.name)
+        .sheet(item: $eqTarget) { device in
+            EQView(device: device)
+        }
     }
 
     private var nowPlayingCard: some View {
@@ -92,8 +96,14 @@ struct GroupDetailView: View {
 
     private var generalVolumeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(group.members.count > 1 ? "Group Volume" : "Volume", systemImage: "speaker.wave.2.fill")
-                .font(.headline)
+            HStack {
+                Label(group.members.count > 1 ? "Group Volume" : "Volume", systemImage: "speaker.wave.2.fill")
+                    .font(.headline)
+                Spacer()
+                if let coordinator = group.coordinator {
+                    eqButton(for: coordinator)
+                }
+            }
             VolumeSlider(value: Binding(
                 get: { Double(vm.groupVolumes[group.id] ?? 0) },
                 set: { vm.setGroupVolume(group, to: Int($0)) }
@@ -109,8 +119,12 @@ struct GroupDetailView: View {
                 .font(.headline)
             ForEach(group.members) { device in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(device.name)
-                        .font(.subheadline)
+                    HStack {
+                        Text(device.name)
+                            .font(.subheadline)
+                        Spacer()
+                        eqButton(for: device)
+                    }
                     VolumeSlider(value: Binding(
                         get: { Double(vm.deviceVolumes[device.uuid] ?? 0) },
                         set: { vm.setDeviceVolume(device, to: Int($0)) }
@@ -120,6 +134,16 @@ struct GroupDetailView: View {
         }
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func eqButton(for device: SonosDevice) -> some View {
+        Button {
+            eqTarget = device
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+        }
+        .buttonStyle(.borderless)
+        .help("Bass, treble, and loudness for \(device.name)")
     }
 }
 

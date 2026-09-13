@@ -5,6 +5,8 @@ enum SonosService: String {
     case renderingControl = "RenderingControl"
     case groupRenderingControl = "GroupRenderingControl"
     case zoneGroupTopology = "ZoneGroupTopology"
+    case contentDirectory = "ContentDirectory"
+    case alarmClock = "AlarmClock"
 
     var urn: String {
         switch self {
@@ -21,6 +23,8 @@ enum SonosService: String {
         case .renderingControl: return "/MediaRenderer/RenderingControl/Control"
         case .groupRenderingControl: return "/MediaRenderer/GroupRenderingControl/Control"
         case .zoneGroupTopology: return "/ZoneGroupTopology/Control"
+        case .contentDirectory: return "/MediaServer/ContentDirectory/Control"
+        case .alarmClock: return "/AlarmClock/Control"
         }
     }
 }

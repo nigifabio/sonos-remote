@@ -36,6 +36,47 @@ targets:
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGNING_ALLOWED: "YES"
 
+  # iOS/iPadOS companion. Reuses Models/Networking/Services/ViewModels and
+  # most Views unchanged (they're plain SwiftUI with no AppKit dependency);
+  # excludes the macOS-only menu bar tray, Settings scene, and the Core-Audio
+  # -based Intercom mic picker, none of which have an iOS equivalent yet.
+  SonosRemoteiOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: SonosRemoteiOS
+      - path: SonosRemote/Models
+      - path: SonosRemote/Networking
+      - path: SonosRemote/Shared
+      - path: SonosRemote/ViewModels
+      - path: SonosRemote/Services
+        excludes:
+          - "AudioDeviceManager.swift"
+          - "IntercomService.swift"
+      - path: SonosRemote/Views
+        excludes:
+          - "ContentView.swift"
+          - "MenuBarView.swift"
+          - "SettingsView.swift"
+          - "IntercomView.swift"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fabionigi.SonosRemote.iOS
+        PRODUCT_NAME: "SonosRemote"
+        GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_CFBundleDisplayName: "Sonos Remote"
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.music
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Sonos Remote discovers and controls Sonos speakers on your local network."
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: ["UIInterfaceOrientationPortrait", "UIInterfaceOrientationLandscapeLeft", "UIInterfaceOrientationLandscapeRight"]
+        TARGETED_DEVICE_FAMILY: "1,2"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "YES"
+
   SonosRemoteTests:
     type: bundle.unit-test
     platform: macOS
