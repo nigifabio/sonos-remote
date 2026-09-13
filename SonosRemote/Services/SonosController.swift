@@ -53,8 +53,12 @@ enum SonosController {
                       let name = attrs["ZoneName"],
                       let location = attrs["Location"],
                       let host = URL(string: location)?.host else { return nil }
-                // Skip satellite/bonded speakers that aren't independently addressable rooms.
+                // Skip satellite/bonded speakers that aren't independently addressable
+                // rooms, and non-audio infrastructure like a Sonos Bridge (common in
+                // older SonosNet setups, including most S1-era systems) — it appears
+                // in topology but has no transport/rendering services to control.
                 if attrs["Invisible"] == "1" { return nil }
+                if attrs["IsZoneBridge"] == "1" { return nil }
                 return SonosDevice(uuid: uuid, name: name, host: host)
             }
             guard !members.isEmpty else { continue }

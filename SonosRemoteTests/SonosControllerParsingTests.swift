@@ -51,6 +51,23 @@ final class SonosControllerParsingTests: XCTestCase {
         XCTAssertEqual(groups.first?.members.first?.uuid, "RINCON_MAIN01400")
     }
 
+    /// A Sonos Bridge (common in older SonosNet setups, including most S1-era
+    /// systems) shows up in topology but has no transport/rendering services —
+    /// it must not be treated as a controllable room.
+    func testSkipsZoneBridge() {
+        let xml = """
+        <ZoneGroups>
+          <ZoneGroup Coordinator="RINCON_MAIN01400" ID="RINCON_MAIN01400:1">
+            <ZoneGroupMember UUID="RINCON_MAIN01400" ZoneName="Living Room" Location="http://10.0.0.20:1400/xml/device_description.xml"/>
+            <ZoneGroupMember UUID="RINCON_BRIDGE01400" ZoneName="BRIDGE" Location="http://10.0.0.22:1400/xml/device_description.xml" IsZoneBridge="1"/>
+          </ZoneGroup>
+        </ZoneGroups>
+        """
+        let groups = SonosController.parseZoneGroups(from: xml)
+        XCTAssertEqual(groups.first?.members.count, 1)
+        XCTAssertEqual(groups.first?.members.first?.uuid, "RINCON_MAIN01400")
+    }
+
     func testEmptyTopologyReturnsNoGroups() {
         XCTAssertEqual(SonosController.parseZoneGroups(from: "<ZoneGroups></ZoneGroups>").count, 0)
     }

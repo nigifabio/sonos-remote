@@ -40,10 +40,36 @@ struct iOSContentView: View {
                             }
                             .disabled(vm.groups.count < 2 && !vm.isPartyMode)
 
-                            Button { showingLibrary = true } label: { Image(systemName: "music.note.list") }
-                            Button { showingQueue = true } label: { Image(systemName: "list.number") }
-                            Button { showingAlarms = true } label: { Image(systemName: "alarm") }
-                            Button { showingHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
+                            Menu {
+                                Button {
+                                    showingLibrary = true
+                                } label: {
+                                    Label("Library", systemImage: "music.note.list")
+                                }
+                                .disabled(vm.selectedGroup == nil)
+
+                                Button {
+                                    showingQueue = true
+                                } label: {
+                                    Label("Queue", systemImage: "list.number")
+                                }
+                                .disabled(vm.selectedGroup == nil)
+
+                                Button {
+                                    showingAlarms = true
+                                } label: {
+                                    Label("Alarms", systemImage: "alarm")
+                                }
+                                .disabled(vm.allDevices.isEmpty)
+
+                                Button {
+                                    showingHistory = true
+                                } label: {
+                                    Label("Recently Played", systemImage: "clock.arrow.circlepath")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                            }
                         }
                     }
             } else if vm.isDiscovering {

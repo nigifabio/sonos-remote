@@ -12,7 +12,7 @@ final class SonosViewModel: ObservableObject {
     @Published var isBusyGrouping = false
     @Published var errorMessage: String?
     @Published var selectedGroupID: String?
-    @Published private(set) var playbackHistory: [PlaybackHistoryEntry] = SonosViewModel.loadHistory()
+    @Published private(set) var playbackHistory: [PlaybackHistoryEntry] = []
 
     #if os(macOS)
     let intercom = IntercomService()
@@ -20,8 +20,17 @@ final class SonosViewModel: ObservableObject {
 
     private var pollTask: Task<Void, Never>?
     private var lastLoggedTrack: [String: TrackInfo] = [:] // group ID -> last track we recorded to history
+    private let defaults: UserDefaults
     private static let historyDefaultsKey = "playbackHistory"
     private static let historyLimit = 50
+
+    /// `defaults` is injectable so tests can use an isolated `UserDefaults`
+    /// suite instead of `.standard` — sharing `.standard` across test cases
+    /// caused real flakiness under parallel test execution.
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        playbackHistory = Self.loadHistory(from: defaults)
+    }
 
     /// Most recently played track across every room, newest first.
     var lastPlayed: PlaybackHistoryEntry? { playbackHistory.first }
@@ -40,15 +49,15 @@ final class SonosViewModel: ObservableObject {
         playbackHistory.first { $0.service == .spotify }
     }
 
-    private static func loadHistory() -> [PlaybackHistoryEntry] {
-        guard let data = UserDefaults.standard.data(forKey: historyDefaultsKey),
+    private static func loadHistory(from defaults: UserDefaults) -> [PlaybackHistoryEntry] {
+        guard let data = defaults.data(forKey: historyDefaultsKey),
               let entries = try? JSONDecoder().decode([PlaybackHistoryEntry].self, from: data) else { return [] }
         return entries
     }
 
     private func saveHistory() {
         guard let data = try? JSONEncoder().encode(playbackHistory) else { return }
-        UserDefaults.standard.set(data, forKey: Self.historyDefaultsKey)
+        defaults.set(data, forKey: Self.historyDefaultsKey)
     }
 
     /// Records a history entry if the group's track actually changed since

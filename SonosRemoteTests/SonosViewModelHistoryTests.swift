@@ -3,9 +3,25 @@ import XCTest
 
 @MainActor
 final class SonosViewModelHistoryTests: XCTestCase {
+    private var suiteName = ""
+    private var defaults: UserDefaults!
+
+    override func setUp() {
+        super.setUp()
+        // A fresh, uniquely-named suite per test — never UserDefaults.standard,
+        // which caused real cross-test flakiness under parallel execution.
+        suiteName = "SonosViewModelHistoryTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)
+    }
+
     override func tearDown() {
-        UserDefaults.standard.removeObject(forKey: "playbackHistory")
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults = nil
         super.tearDown()
+    }
+
+    private func makeViewModel() -> SonosViewModel {
+        SonosViewModel(defaults: defaults)
     }
 
     private func makeGroup() -> SonosGroup {
@@ -14,7 +30,7 @@ final class SonosViewModelHistoryTests: XCTestCase {
     }
 
     func testRecordsNewTrackToHistory() {
-        let vm = SonosViewModel()
+        let vm = makeViewModel()
         let group = makeGroup()
         var track = TrackInfo()
         track.title = "Angel Of The Morning"
@@ -29,7 +45,7 @@ final class SonosViewModelHistoryTests: XCTestCase {
     }
 
     func testDoesNotDuplicateSameTrack() {
-        let vm = SonosViewModel()
+        let vm = makeViewModel()
         let group = makeGroup()
         var track = TrackInfo()
         track.title = "Song A"
@@ -42,7 +58,7 @@ final class SonosViewModelHistoryTests: XCTestCase {
     }
 
     func testRecordsAgainWhenTrackChanges() {
-        let vm = SonosViewModel()
+        let vm = makeViewModel()
         let group = makeGroup()
         var trackA = TrackInfo(); trackA.title = "Song A"; trackA.artist = "Artist A"
         var trackB = TrackInfo(); trackB.title = "Song B"; trackB.artist = "Artist B"
@@ -55,13 +71,13 @@ final class SonosViewModelHistoryTests: XCTestCase {
     }
 
     func testIgnoresEmptyTitle() {
-        let vm = SonosViewModel()
+        let vm = makeViewModel()
         vm.recordHistoryIfChanged(group: makeGroup(), track: TrackInfo())
         XCTAssertTrue(vm.playbackHistory.isEmpty)
     }
 
     func testLastSpotifyPlaylistRequiresKnownSourceLabel() {
-        let vm = SonosViewModel()
+        let vm = makeViewModel()
         let group = makeGroup()
         var track = TrackInfo()
         track.title = "Random Spotify Track"
@@ -76,7 +92,7 @@ final class SonosViewModelHistoryTests: XCTestCase {
     }
 
     func testHistoryIsCappedAtFiftyEntries() {
-        let vm = SonosViewModel()
+        let vm = makeViewModel()
         let group = makeGroup()
         for i in 0..<60 {
             var track = TrackInfo()
@@ -86,5 +102,16 @@ final class SonosViewModelHistoryTests: XCTestCase {
         }
         XCTAssertEqual(vm.playbackHistory.count, 50)
         XCTAssertEqual(vm.lastPlayed?.title, "Song 59")
+    }
+
+    func testPersistsAndReloadsAcrossInstances() {
+        let group = makeGroup()
+        var track = TrackInfo(); track.title = "Persisted Song"; track.artist = "Someone"
+
+        let vm1 = makeViewModel()
+        vm1.recordHistoryIfChanged(group: group, track: track)
+
+        let vm2 = makeViewModel() // fresh instance, same suite — should reload what vm1 saved
+        XCTAssertEqual(vm2.lastPlayed?.title, "Persisted Song")
     }
 }

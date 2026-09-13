@@ -68,6 +68,7 @@ discovery/SOAP/GENA code and the same `SonosViewModel` run on both platforms.
 - Xcode 15+
 - Same LAN/Wi-Fi as your Sonos speakers
 - [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) to (re)generate the `.xcodeproj`
+- Works with both **Sonos S2** and **Sonos S1** (legacy) systems — see below
 
 ## Build & run
 
@@ -211,6 +212,26 @@ previous state is restored.
   `SOAPClient.call` implementation. Caught immediately by a standalone
   compile check before it reached the app — a reminder to always rebuild
   after editing a file that's this central.
+
+## Sonos S1 (legacy) compatibility
+
+Sonos splits its ecosystem into **S2** (current) and **S1** (older hardware
+that never upgraded). This app talks only to the local UPnP services that
+have been part of Sonos' local control API since long before that split —
+`AVTransport`, `RenderingControl`, `GroupRenderingControl`,
+`ZoneGroupTopology`, `ContentDirectory`, and `AlarmClock` — so it should work
+against an S1 household without any protocol-level changes. Concretely:
+
+- `parseZoneGroups` filters out `IsZoneBridge="1"` members, not just
+  `Invisible="1"` ones — a **Sonos Bridge** (needed on many original SonosNet
+  setups, common in S1-era systems) shows up in topology but has no
+  transport/rendering services, so it must never be treated as a room.
+- Every SOAP call site already degrades gracefully (`try?`, default values)
+  rather than crashing if an older device lacks a particular action.
+
+This hasn't been verified against real S1 hardware — the reference system
+used throughout development is all S2 (Era 100/300, Roam). If you hit an S1
+device that doesn't behave as expected, that's the gap to close next.
 
 ## Known limitations
 

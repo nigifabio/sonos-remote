@@ -43,47 +43,49 @@ struct ContentView: View {
                 .help(vm.isPartyMode ? "Split rooms back apart" : "Group every room together")
 
                 Button {
-                    showingLibrary = true
-                } label: {
-                    Label("Library", systemImage: "music.note.list")
-                }
-                .disabled(vm.selectedGroup == nil)
-                .help("Browse Favorites, Playlists, and your Music Library")
-
-                Button {
-                    showingQueue = true
-                } label: {
-                    Label("Queue", systemImage: "list.number")
-                }
-                .disabled(vm.selectedGroup == nil)
-                .help("View and manage the play queue")
-
-                Button {
-                    showingAlarms = true
-                } label: {
-                    Label("Alarms", systemImage: "alarm")
-                }
-                .disabled(vm.allDevices.isEmpty)
-                .help("Alarms and sleep timer")
-
-                Button {
-                    showingHistory = true
-                } label: {
-                    Label("Recently Played", systemImage: "clock.arrow.circlepath")
-                }
-                .help("Last song and last Spotify playlist played")
-
-                Button {
                     showingIntercom = true
                 } label: {
                     Label("Intercom", systemImage: "mic.circle.fill")
                 }
                 .help("Speak an announcement to one or more rooms")
 
-                SettingsLink {
-                    Label("Settings", systemImage: "gear")
+                Menu {
+                    Button {
+                        showingLibrary = true
+                    } label: {
+                        Label("Library", systemImage: "music.note.list")
+                    }
+                    .disabled(vm.selectedGroup == nil)
+
+                    Button {
+                        showingQueue = true
+                    } label: {
+                        Label("Queue", systemImage: "list.number")
+                    }
+                    .disabled(vm.selectedGroup == nil)
+
+                    Button {
+                        showingAlarms = true
+                    } label: {
+                        Label("Alarms", systemImage: "alarm")
+                    }
+                    .disabled(vm.allDevices.isEmpty)
+
+                    Button {
+                        showingHistory = true
+                    } label: {
+                        Label("Recently Played", systemImage: "clock.arrow.circlepath")
+                    }
+
+                    Divider()
+
+                    SettingsLink {
+                        Label("Settings", systemImage: "gear")
+                    }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
                 }
-                .help("Settings")
+                .help("Library, Queue, Alarms, Recently Played, and Settings")
             }
         }
         .sheet(isPresented: $showingIntercom) {
