@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var showingLibrary = false
     @State private var showingQueue = false
     @State private var showingAlarms = false
+    @State private var showingHistory = false
 
     var body: some View {
         NavigationSplitView {
@@ -66,6 +67,13 @@ struct ContentView: View {
                 .help("Alarms and sleep timer")
 
                 Button {
+                    showingHistory = true
+                } label: {
+                    Label("Recently Played", systemImage: "clock.arrow.circlepath")
+                }
+                .help("Last song and last Spotify playlist played")
+
+                Button {
                     showingIntercom = true
                 } label: {
                     Label("Intercom", systemImage: "mic.circle.fill")
@@ -85,6 +93,7 @@ struct ContentView: View {
         .sheet(isPresented: $showingLibrary) {
             if let group = vm.selectedGroup {
                 LibraryView(group: group)
+                    .environmentObject(vm)
             }
         }
         .sheet(isPresented: $showingQueue) {
@@ -94,6 +103,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingAlarms) {
             AlarmsView().environmentObject(vm)
+        }
+        .sheet(isPresented: $showingHistory) {
+            HistoryView().environmentObject(vm)
         }
         .overlay(alignment: .top) {
             if let error = vm.errorMessage, !vm.groups.isEmpty {

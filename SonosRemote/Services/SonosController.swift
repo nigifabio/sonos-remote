@@ -102,6 +102,7 @@ enum SonosController {
         var info = TrackInfo()
         info.durationSeconds = XMLHelpers.seconds(fromSonosTime: XMLHelpers.value(ofTag: "TrackDuration", in: posXML) ?? "0:00:00")
         info.positionSeconds = XMLHelpers.seconds(fromSonosTime: XMLHelpers.value(ofTag: "RelTime", in: posXML) ?? "0:00:00")
+        info.sourceURI = XMLHelpers.unescapeXML(XMLHelpers.value(ofTag: "TrackURI", in: posXML) ?? "")
 
         if let metaEscaped = XMLHelpers.value(ofTag: "TrackMetaData", in: posXML), !metaEscaped.isEmpty {
             let meta = XMLHelpers.unescapeXML(metaEscaped)

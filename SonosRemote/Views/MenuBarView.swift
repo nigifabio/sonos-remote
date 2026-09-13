@@ -6,6 +6,7 @@ import AppKit
 struct MenuBarView: View {
     @EnvironmentObject var vm: SonosViewModel
     @Environment(\.openWindow) private var openWindow
+    @State private var showingHistory = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -15,11 +16,53 @@ struct MenuBarView: View {
             Divider()
             partyModeRow
             Divider()
+            recentlyPlayedSection
+            Divider()
             footer
         }
         .padding(14)
         .frame(width: 300)
         .task { await vm.refreshTopology() }
+        .sheet(isPresented: $showingHistory) {
+            HistoryView().environmentObject(vm)
+        }
+    }
+
+    private var recentlyPlayedSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label("Recently Played", systemImage: "clock.arrow.circlepath")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("See All") { showingHistory = true }
+                    .buttonStyle(.borderless)
+                    .font(.caption2)
+            }
+            if let last = vm.lastPlayed {
+                recentRow(icon: "music.note", title: last.title, subtitle: last.artist)
+            } else {
+                Text("Nothing played yet").font(.caption2).foregroundStyle(.tertiary)
+            }
+            if let playlist = vm.lastSpotifyPlaylist, let name = playlist.sourceLabel {
+                recentRow(icon: "music.note.list", title: name, subtitle: "Spotify Playlist")
+            } else if let track = vm.lastSpotifyTrack {
+                recentRow(icon: "music.note.list", title: track.title, subtitle: "Last Spotify track")
+            }
+        }
+    }
+
+    private func recentRow(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon).font(.caption2).foregroundStyle(Color.accentColor)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(title).font(.caption).lineLimit(1)
+                if !subtitle.isEmpty {
+                    Text(subtitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
+            Spacer()
+        }
     }
 
     private var header: some View {

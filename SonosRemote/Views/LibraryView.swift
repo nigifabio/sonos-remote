@@ -6,6 +6,7 @@ import SwiftUI
 /// into, or played whole via the trailing Play button.
 struct LibraryView: View {
     let group: SonosGroup
+    @EnvironmentObject var vm: SonosViewModel
     @Environment(\.dismiss) private var dismiss
 
     enum Root: String, CaseIterable, Identifiable {
@@ -102,8 +103,7 @@ struct LibraryView: View {
     }
 
     private func play(_ item: BrowseItem) async {
-        guard let device = group.coordinator else { return }
-        try? await SonosController.play(item, on: device)
+        vm.playLibraryItem(item, in: group)
         dismiss()
     }
 }

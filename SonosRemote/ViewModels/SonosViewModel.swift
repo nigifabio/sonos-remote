@@ -12,12 +12,84 @@ final class SonosViewModel: ObservableObject {
     @Published var isBusyGrouping = false
     @Published var errorMessage: String?
     @Published var selectedGroupID: String?
+    @Published private(set) var playbackHistory: [PlaybackHistoryEntry] = SonosViewModel.loadHistory()
 
     #if os(macOS)
     let intercom = IntercomService()
     #endif
 
     private var pollTask: Task<Void, Never>?
+    private var lastLoggedTrack: [String: TrackInfo] = [:] // group ID -> last track we recorded to history
+    private static let historyDefaultsKey = "playbackHistory"
+    private static let historyLimit = 50
+
+    /// Most recently played track across every room, newest first.
+    var lastPlayed: PlaybackHistoryEntry? { playbackHistory.first }
+
+    /// Most recent Spotify play where we know the specific Favorite/Playlist
+    /// name (i.e. it was started from this app's Library browser — Sonos
+    /// doesn't expose "what playlist is this track from" for anything
+    /// started elsewhere, like the official app or Spotify Connect).
+    var lastSpotifyPlaylist: PlaybackHistoryEntry? {
+        playbackHistory.first { $0.service == .spotify && $0.sourceLabel != nil }
+    }
+
+    /// Falls back to the most recent Spotify *track* (playlist name unknown)
+    /// when we've never played a Spotify Favorite/Playlist from this app.
+    var lastSpotifyTrack: PlaybackHistoryEntry? {
+        playbackHistory.first { $0.service == .spotify }
+    }
+
+    private static func loadHistory() -> [PlaybackHistoryEntry] {
+        guard let data = UserDefaults.standard.data(forKey: historyDefaultsKey),
+              let entries = try? JSONDecoder().decode([PlaybackHistoryEntry].self, from: data) else { return [] }
+        return entries
+    }
+
+    private func saveHistory() {
+        guard let data = try? JSONEncoder().encode(playbackHistory) else { return }
+        UserDefaults.standard.set(data, forKey: Self.historyDefaultsKey)
+    }
+
+    /// Records a history entry if the group's track actually changed since
+    /// the last one we logged (avoids re-logging the same song every poll).
+    func recordHistoryIfChanged(group: SonosGroup, track: TrackInfo) {
+        guard !track.title.isEmpty else { return }
+        if let last = lastLoggedTrack[group.id], last.title == track.title, last.artist == track.artist { return }
+        lastLoggedTrack[group.id] = track
+        let entry = PlaybackHistoryEntry(
+            groupName: group.name, title: track.title, artist: track.artist,
+            album: track.album, service: track.service
+        )
+        playbackHistory.insert(entry, at: 0)
+        if playbackHistory.count > Self.historyLimit {
+            playbackHistory.removeLast(playbackHistory.count - Self.historyLimit)
+        }
+        saveHistory()
+    }
+
+    /// Plays a Favorite/Playlist/Library item from `LibraryView` and records
+    /// it to history with its exact name — the one case where we actually
+    /// know the playlist, since we're the one who just told Sonos to play it.
+    func playLibraryItem(_ item: BrowseItem, in group: SonosGroup) {
+        guard let device = group.coordinator else { return }
+        Task {
+            try? await SonosController.play(item, on: device)
+            let service = MusicService.detect(from: item.uri)
+            let entry = PlaybackHistoryEntry(
+                groupName: group.name, title: item.title, artist: item.subtitle,
+                album: "", service: service, sourceLabel: item.title
+            )
+            lastLoggedTrack[group.id] = TrackInfo(title: item.title, artist: item.subtitle)
+            playbackHistory.insert(entry, at: 0)
+            if playbackHistory.count > Self.historyLimit {
+                playbackHistory.removeLast(playbackHistory.count - Self.historyLimit)
+            }
+            saveHistory()
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            await refreshNowPlaying(for: group)
+        }
+    }
 
     var allDevices: [SonosDevice] { groups.flatMap(\.members) }
     var allDevicesSorted: [SonosDevice] { allDevices.sorted { $0.name < $1.name } }
@@ -95,7 +167,10 @@ final class SonosViewModel: ObservableObject {
     /// just to pick up the new track's title/artist/art.
     private func refreshNowPlaying(for group: SonosGroup) async {
         guard let coordinator = group.coordinator else { return }
-        if let track = try? await SonosController.trackInfo(coordinator) { nowPlaying[group.id] = track }
+        if let track = try? await SonosController.trackInfo(coordinator) {
+            nowPlaying[group.id] = track
+            recordHistoryIfChanged(group: group, track: track)
+        }
         if let state = try? await SonosController.transportState(coordinator) { transportStates[group.id] = state }
         publishWidgetSnapshot()
     }
@@ -106,7 +181,10 @@ final class SonosViewModel: ObservableObject {
             async let track = try? SonosController.trackInfo(coordinator)
             async let state = try? SonosController.transportState(coordinator)
             async let gVolume = try? SonosController.groupVolume(group)
-            if let track = await track { nowPlaying[group.id] = track }
+            if let track = await track {
+                nowPlaying[group.id] = track
+                recordHistoryIfChanged(group: group, track: track)
+            }
             if let state = await state { transportStates[group.id] = state }
             if let gVolume = await gVolume { groupVolumes[group.id] = gVolume }
 

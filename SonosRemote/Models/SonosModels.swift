@@ -39,6 +39,28 @@ struct TrackInfo: Equatable {
     var durationSeconds: Int = 0
     var positionSeconds: Int = 0
     var isStream: Bool = false
+    var sourceURI: String = ""
+
+    var service: MusicService { MusicService.detect(from: sourceURI) }
+}
+
+/// Identifies which streaming service a track came from, detected from its
+/// `TrackURI` scheme (e.g. `x-sonos-spotify:...`). Sonos doesn't give third
+/// parties a way to query "what service is this" directly, so this is a
+/// best-effort match on the URI itself.
+enum MusicService: String, Codable {
+    case spotify = "Spotify"
+    case appleMusic = "Apple Music"
+    case local = "Local/Other"
+    case unknown = "Unknown"
+
+    static func detect(from uri: String) -> MusicService {
+        let lower = uri.lowercased()
+        if lower.contains("spotify") { return .spotify }
+        if lower.contains("applemusic") || lower.contains("apple-music") { return .appleMusic }
+        if uri.isEmpty { return .unknown }
+        return .local
+    }
 }
 
 struct TransportSnapshot {
