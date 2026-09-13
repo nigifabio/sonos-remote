@@ -1,0 +1,711 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		013CA28DBE87A2420DEBABC3 /* SOAPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7F4348EDEE638AAB2CF7B0 /* SOAPClient.swift */; };
+		01B5464F0586F183B5C95792 /* SonosRemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F55FEBC79B962B6AC4CD430C /* SonosRemoteApp.swift */; };
+		08350077AB8BB560630517A2 /* SOAPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7F4348EDEE638AAB2CF7B0 /* SOAPClient.swift */; };
+		10A4074773C40C98D9247B66 /* SonosController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFC17C3DDB1213040324849 /* SonosController.swift */; };
+		2283A6946E41559ED76A9E21 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6607316C18066AE866C1D09C /* GroupDetailView.swift */; };
+		2621E031BA6936949D50330C /* SonosModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9660B211A1C84C59988A7FB7 /* SonosModels.swift */; };
+		28C693884EAB6B9F5F0DA446 /* SonosWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23784B31B65CB7475B2DF78C /* SonosWidgetBundle.swift */; };
+		2C7ADFAC3ED7E0E5C9ACE79C /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22EFBA775BFDEF99E33A8AF /* AppThemeTests.swift */; };
+		398F01D7A4F40A09B3B0699B /* XMLHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BB5DE142BCC00BF8163010 /* XMLHelpers.swift */; };
+		3EA7474CD5B73945B1F13EB3 /* SonosModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9660B211A1C84C59988A7FB7 /* SonosModels.swift */; };
+		45D3C619C472189BC9D83AF7 /* AudioDeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDC646D3B0AA0C81B76257AC /* AudioDeviceManager.swift */; };
+		53AD8A506E2204B394E96BD3 /* SonosController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFC17C3DDB1213040324849 /* SonosController.swift */; };
+		53E2B657E9C4741F81D884F5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2023BD17607A6E248A7DD0DC /* Assets.xcassets */; };
+		56C01199DA6E0E4461B6F325 /* WidgetSharedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA0D2D35CD2276D0B877F3C /* WidgetSharedState.swift */; };
+		5C02CB6ECD282BAAAA952C75 /* IntercomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBCAC6257B46246DC6774AC /* IntercomView.swift */; };
+		5C378F631162BBF1A47AFD23 /* SonosViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A78C5C9DCBBC8664B487105 /* SonosViewModel.swift */; };
+		5D2DE68CEAE41A0A9D535A06 /* SonosWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78817C2F0D32E39A5EB8D899 /* SonosWidget.swift */; };
+		5DC1E357449775DBB35BDCB8 /* XMLHelpersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E759E89578FAEFFA042A1240 /* XMLHelpersTests.swift */; };
+		5E09330EF95425C015189FC8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CDED5610AE5E5998912834 /* ContentView.swift */; };
+		5E8D52AC5C555A4DB64BFAF8 /* IntercomWAVTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C8BFDC3EFBFBFCB115FCAF /* IntercomWAVTests.swift */; };
+		683BB1B3C37FD443854FBA2A /* WidgetIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A04614801C6D45ECF57DC7 /* WidgetIntents.swift */; };
+		7170279977338BE5833B5583 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35C0C30D35102ADDA0D6A46F /* MenuBarView.swift */; };
+		71F4C3F38FDDF6EF4443E549 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82E84C18D5047B674F4362EC /* AppTheme.swift */; };
+		7A759FC741A87A4F052259D0 /* SSDPDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = E05CB89C3687B170DB97E900 /* SSDPDiscovery.swift */; };
+		89348BED8499811D165E0482 /* RoomEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F5E148A5F52198DAB94EDBE /* RoomEntity.swift */; };
+		8CBE2CC2E62C368BE376C3E5 /* WidgetSharedStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E999A5B4E5F1C24B96BFFAA6 /* WidgetSharedStateTests.swift */; };
+		8F63407A3A73450EFB43E107 /* LocalHTTPServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72A4508FE434EC9DC4953F5C /* LocalHTTPServer.swift */; };
+		A304A6EAFE70BBE477383B78 /* XMLHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BB5DE142BCC00BF8163010 /* XMLHelpers.swift */; };
+		A38F79E7E465F79F2E0EEA58 /* SonosViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12AB94982FEC37AF7FDD87F4 /* SonosViewModelTests.swift */; };
+		A39C38C305487A05FF3CE874 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71AE6DE09AB7D28979A298AA /* SidebarView.swift */; };
+		AEF8759F99068B5C6BAA36ED /* SonosControllerParsingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42969594FCD613A94D9F444F /* SonosControllerParsingTests.swift */; };
+		B2959E346DCF441590D34986 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA94AA730C29A73CB03D3D8B /* SettingsView.swift */; };
+		BA82B48BDBD713291742474C /* IntercomService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0BF698D85AEB0C8746C5F18 /* IntercomService.swift */; };
+		C3CDEA024479C80C075F0A7F /* SSDPDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = E05CB89C3687B170DB97E900 /* SSDPDiscovery.swift */; };
+		D93194EB233F61F176F4FCC2 /* WidgetSharedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA0D2D35CD2276D0B877F3C /* WidgetSharedState.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DF5727EBD1927F0C40558F37 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9998FB5E3BF9E0DB35FF7EEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 176CEA0B70B279C399090FBB;
+			remoteInfo = SonosRemote;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		08A04614801C6D45ECF57DC7 /* WidgetIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntents.swift; sourceTree = "<group>"; };
+		0F5E148A5F52198DAB94EDBE /* RoomEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomEntity.swift; sourceTree = "<group>"; };
+		10C8BFDC3EFBFBFCB115FCAF /* IntercomWAVTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntercomWAVTests.swift; sourceTree = "<group>"; };
+		12AB94982FEC37AF7FDD87F4 /* SonosViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosViewModelTests.swift; sourceTree = "<group>"; };
+		18CDED5610AE5E5998912834 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		2023BD17607A6E248A7DD0DC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		23784B31B65CB7475B2DF78C /* SonosWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosWidgetBundle.swift; sourceTree = "<group>"; };
+		318B0ED4207D654F987AE9D0 /* SonosWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SonosWidget.entitlements; sourceTree = "<group>"; };
+		35C0C30D35102ADDA0D6A46F /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		3AFC17C3DDB1213040324849 /* SonosController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosController.swift; sourceTree = "<group>"; };
+		3FA0D2D35CD2276D0B877F3C /* WidgetSharedState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSharedState.swift; sourceTree = "<group>"; };
+		42969594FCD613A94D9F444F /* SonosControllerParsingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosControllerParsingTests.swift; sourceTree = "<group>"; };
+		49A48C4A12A1EC114C147E69 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5A78C5C9DCBBC8664B487105 /* SonosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosViewModel.swift; sourceTree = "<group>"; };
+		5A7F4348EDEE638AAB2CF7B0 /* SOAPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOAPClient.swift; sourceTree = "<group>"; };
+		64BB5DE142BCC00BF8163010 /* XMLHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLHelpers.swift; sourceTree = "<group>"; };
+		6607316C18066AE866C1D09C /* GroupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailView.swift; sourceTree = "<group>"; };
+		66F791A98B57E5D6B0F01E25 /* SonosRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SonosRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		71AE6DE09AB7D28979A298AA /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		72A4508FE434EC9DC4953F5C /* LocalHTTPServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHTTPServer.swift; sourceTree = "<group>"; };
+		78817C2F0D32E39A5EB8D899 /* SonosWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosWidget.swift; sourceTree = "<group>"; };
+		795304510F73D7BAB617A693 /* SonosRemote.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SonosRemote.entitlements; sourceTree = "<group>"; };
+		82E84C18D5047B674F4362EC /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		876FD514B112A7B916A67183 /* SonosRemoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SonosRemoteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9660B211A1C84C59988A7FB7 /* SonosModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosModels.swift; sourceTree = "<group>"; };
+		AA94AA730C29A73CB03D3D8B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		CDBCAC6257B46246DC6774AC /* IntercomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntercomView.swift; sourceTree = "<group>"; };
+		D0BF698D85AEB0C8746C5F18 /* IntercomService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntercomService.swift; sourceTree = "<group>"; };
+		D22DF7AA5F45C014B05A7284 /* SonosWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SonosWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E05CB89C3687B170DB97E900 /* SSDPDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSDPDiscovery.swift; sourceTree = "<group>"; };
+		E759E89578FAEFFA042A1240 /* XMLHelpersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLHelpersTests.swift; sourceTree = "<group>"; };
+		E999A5B4E5F1C24B96BFFAA6 /* WidgetSharedStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSharedStateTests.swift; sourceTree = "<group>"; };
+		EDC646D3B0AA0C81B76257AC /* AudioDeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceManager.swift; sourceTree = "<group>"; };
+		F22EFBA775BFDEF99E33A8AF /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
+		F55FEBC79B962B6AC4CD430C /* SonosRemoteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosRemoteApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0791C52AE4C301420710B71F /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				5A7F4348EDEE638AAB2CF7B0 /* SOAPClient.swift */,
+				E05CB89C3687B170DB97E900 /* SSDPDiscovery.swift */,
+				64BB5DE142BCC00BF8163010 /* XMLHelpers.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		1D3915FAE83ACDB20912B71B /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F55FEBC79B962B6AC4CD430C /* SonosRemoteApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		4390DD641F4B597D5FAE6A79 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				EDC646D3B0AA0C81B76257AC /* AudioDeviceManager.swift */,
+				D0BF698D85AEB0C8746C5F18 /* IntercomService.swift */,
+				72A4508FE434EC9DC4953F5C /* LocalHTTPServer.swift */,
+				3AFC17C3DDB1213040324849 /* SonosController.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		4699D457FDD5814FFF75EDF9 /* SonosRemote */ = {
+			isa = PBXGroup;
+			children = (
+				795304510F73D7BAB617A693 /* SonosRemote.entitlements */,
+				1D3915FAE83ACDB20912B71B /* App */,
+				9ECC2DEDE3221540C21FA6FF /* Models */,
+				0791C52AE4C301420710B71F /* Networking */,
+				5AB59B5DDC2AAAD933C35E21 /* Resources */,
+				4390DD641F4B597D5FAE6A79 /* Services */,
+				BA2D18EECC57C683CBDAE8AF /* Shared */,
+				D00B3A0A544ACFCA010EAAF7 /* ViewModels */,
+				DF20C5502EE412BC1C759644 /* Views */,
+			);
+			path = SonosRemote;
+			sourceTree = "<group>";
+		};
+		5AB59B5DDC2AAAD933C35E21 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2023BD17607A6E248A7DD0DC /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		647934CAF1770AD6BDE699AA /* SonosRemoteTests */ = {
+			isa = PBXGroup;
+			children = (
+				F22EFBA775BFDEF99E33A8AF /* AppThemeTests.swift */,
+				10C8BFDC3EFBFBFCB115FCAF /* IntercomWAVTests.swift */,
+				42969594FCD613A94D9F444F /* SonosControllerParsingTests.swift */,
+				12AB94982FEC37AF7FDD87F4 /* SonosViewModelTests.swift */,
+				E999A5B4E5F1C24B96BFFAA6 /* WidgetSharedStateTests.swift */,
+				E759E89578FAEFFA042A1240 /* XMLHelpersTests.swift */,
+			);
+			path = SonosRemoteTests;
+			sourceTree = "<group>";
+		};
+		89FB9AC70BA967237278FB68 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				66F791A98B57E5D6B0F01E25 /* SonosRemote.app */,
+				876FD514B112A7B916A67183 /* SonosRemoteTests.xctest */,
+				D22DF7AA5F45C014B05A7284 /* SonosWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8BDD0F32ED891716BBDF6085 = {
+			isa = PBXGroup;
+			children = (
+				4699D457FDD5814FFF75EDF9 /* SonosRemote */,
+				647934CAF1770AD6BDE699AA /* SonosRemoteTests */,
+				C5E83D7815E7CCF3CDC6816A /* SonosWidget */,
+				89FB9AC70BA967237278FB68 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9ECC2DEDE3221540C21FA6FF /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				82E84C18D5047B674F4362EC /* AppTheme.swift */,
+				9660B211A1C84C59988A7FB7 /* SonosModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		BA2D18EECC57C683CBDAE8AF /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				3FA0D2D35CD2276D0B877F3C /* WidgetSharedState.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		C5E83D7815E7CCF3CDC6816A /* SonosWidget */ = {
+			isa = PBXGroup;
+			children = (
+				49A48C4A12A1EC114C147E69 /* Info.plist */,
+				0F5E148A5F52198DAB94EDBE /* RoomEntity.swift */,
+				318B0ED4207D654F987AE9D0 /* SonosWidget.entitlements */,
+				78817C2F0D32E39A5EB8D899 /* SonosWidget.swift */,
+				23784B31B65CB7475B2DF78C /* SonosWidgetBundle.swift */,
+				08A04614801C6D45ECF57DC7 /* WidgetIntents.swift */,
+			);
+			path = SonosWidget;
+			sourceTree = "<group>";
+		};
+		D00B3A0A544ACFCA010EAAF7 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				5A78C5C9DCBBC8664B487105 /* SonosViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		DF20C5502EE412BC1C759644 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				18CDED5610AE5E5998912834 /* ContentView.swift */,
+				6607316C18066AE866C1D09C /* GroupDetailView.swift */,
+				CDBCAC6257B46246DC6774AC /* IntercomView.swift */,
+				35C0C30D35102ADDA0D6A46F /* MenuBarView.swift */,
+				AA94AA730C29A73CB03D3D8B /* SettingsView.swift */,
+				71AE6DE09AB7D28979A298AA /* SidebarView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		176CEA0B70B279C399090FBB /* SonosRemote */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 63EBAC740611BC32E36AD764 /* Build configuration list for PBXNativeTarget "SonosRemote" */;
+			buildPhases = (
+				E27091E0CE4FC6A2E7A183A0 /* Sources */,
+				23AB703C1C9D81503A3FC3D9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SonosRemote;
+			packageProductDependencies = (
+			);
+			productName = SonosRemote;
+			productReference = 66F791A98B57E5D6B0F01E25 /* SonosRemote.app */;
+			productType = "com.apple.product-type.application";
+		};
+		2D1134A7C9A4640F1CFF2FF3 /* SonosRemoteTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AD4B4694F380001B78C55B4A /* Build configuration list for PBXNativeTarget "SonosRemoteTests" */;
+			buildPhases = (
+				63E5952243478C7EB0AD34F2 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A672CC04AC78402790E5B43F /* PBXTargetDependency */,
+			);
+			name = SonosRemoteTests;
+			packageProductDependencies = (
+			);
+			productName = SonosRemoteTests;
+			productReference = 876FD514B112A7B916A67183 /* SonosRemoteTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		AC43550CE669FAC832F879A3 /* SonosWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DC04E75FECBE8A23B01B23EF /* Build configuration list for PBXNativeTarget "SonosWidgetExtension" */;
+			buildPhases = (
+				3841E3B47F7F1E48B2B42154 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SonosWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = SonosWidgetExtension;
+			productReference = D22DF7AA5F45C014B05A7284 /* SonosWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9998FB5E3BF9E0DB35FF7EEA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					AC43550CE669FAC832F879A3 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = D321236F5DF8E7964F7CE625 /* Build configuration list for PBXProject "SonosRemote" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 8BDD0F32ED891716BBDF6085;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 89FB9AC70BA967237278FB68 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				176CEA0B70B279C399090FBB /* SonosRemote */,
+				2D1134A7C9A4640F1CFF2FF3 /* SonosRemoteTests */,
+				AC43550CE669FAC832F879A3 /* SonosWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		23AB703C1C9D81503A3FC3D9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				53E2B657E9C4741F81D884F5 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3841E3B47F7F1E48B2B42154 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				89348BED8499811D165E0482 /* RoomEntity.swift in Sources */,
+				08350077AB8BB560630517A2 /* SOAPClient.swift in Sources */,
+				7A759FC741A87A4F052259D0 /* SSDPDiscovery.swift in Sources */,
+				53AD8A506E2204B394E96BD3 /* SonosController.swift in Sources */,
+				2621E031BA6936949D50330C /* SonosModels.swift in Sources */,
+				5D2DE68CEAE41A0A9D535A06 /* SonosWidget.swift in Sources */,
+				28C693884EAB6B9F5F0DA446 /* SonosWidgetBundle.swift in Sources */,
+				683BB1B3C37FD443854FBA2A /* WidgetIntents.swift in Sources */,
+				D93194EB233F61F176F4FCC2 /* WidgetSharedState.swift in Sources */,
+				A304A6EAFE70BBE477383B78 /* XMLHelpers.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		63E5952243478C7EB0AD34F2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2C7ADFAC3ED7E0E5C9ACE79C /* AppThemeTests.swift in Sources */,
+				5E8D52AC5C555A4DB64BFAF8 /* IntercomWAVTests.swift in Sources */,
+				AEF8759F99068B5C6BAA36ED /* SonosControllerParsingTests.swift in Sources */,
+				A38F79E7E465F79F2E0EEA58 /* SonosViewModelTests.swift in Sources */,
+				8CBE2CC2E62C368BE376C3E5 /* WidgetSharedStateTests.swift in Sources */,
+				5DC1E357449775DBB35BDCB8 /* XMLHelpersTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E27091E0CE4FC6A2E7A183A0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71F4C3F38FDDF6EF4443E549 /* AppTheme.swift in Sources */,
+				45D3C619C472189BC9D83AF7 /* AudioDeviceManager.swift in Sources */,
+				5E09330EF95425C015189FC8 /* ContentView.swift in Sources */,
+				2283A6946E41559ED76A9E21 /* GroupDetailView.swift in Sources */,
+				BA82B48BDBD713291742474C /* IntercomService.swift in Sources */,
+				5C02CB6ECD282BAAAA952C75 /* IntercomView.swift in Sources */,
+				8F63407A3A73450EFB43E107 /* LocalHTTPServer.swift in Sources */,
+				7170279977338BE5833B5583 /* MenuBarView.swift in Sources */,
+				013CA28DBE87A2420DEBABC3 /* SOAPClient.swift in Sources */,
+				C3CDEA024479C80C075F0A7F /* SSDPDiscovery.swift in Sources */,
+				B2959E346DCF441590D34986 /* SettingsView.swift in Sources */,
+				A39C38C305487A05FF3CE874 /* SidebarView.swift in Sources */,
+				10A4074773C40C98D9247B66 /* SonosController.swift in Sources */,
+				3EA7474CD5B73945B1F13EB3 /* SonosModels.swift in Sources */,
+				01B5464F0586F183B5C95792 /* SonosRemoteApp.swift in Sources */,
+				5C378F631162BBF1A47AFD23 /* SonosViewModel.swift in Sources */,
+				56C01199DA6E0E4461B6F325 /* WidgetSharedState.swift in Sources */,
+				398F01D7A4F40A09B3B0699B /* XMLHelpers.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A672CC04AC78402790E5B43F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 176CEA0B70B279C399090FBB /* SonosRemote */;
+			targetProxy = DF5727EBD1927F0C40558F37 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1BAA8FF99ACA321103928301 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SonosWidget/SonosWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SonosWidget/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Personal use";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fabionigi.SonosRemote.SonosWidget;
+				PRODUCT_NAME = SonosWidget;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		2434CA29BC8CE0ACDDDC5189 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		42AD4390B7FD0C4A811912D3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4623EC5BB0EBF0376BB9BE52 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Sonos Remote";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Personal use";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Sonos Remote discovers and controls Sonos speakers on your local network.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Sonos Remote uses your microphone to send intercom announcements to your Sonos speakers.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fabionigi.SonosRemote;
+				PRODUCT_NAME = SonosRemote;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		6115F621BBFAB6664C5D4846 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fabionigi.SonosRemoteTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SonosRemote.app/Contents/MacOS/SonosRemote";
+			};
+			name = Debug;
+		};
+		7D11E9114CA2950CCFFA419C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fabionigi.SonosRemoteTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SonosRemote.app/Contents/MacOS/SonosRemote";
+			};
+			name = Release;
+		};
+		A2E3BB6798F55C5C2C696011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SonosWidget/SonosWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SonosWidget/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Personal use";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fabionigi.SonosRemote.SonosWidget;
+				PRODUCT_NAME = SonosWidget;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		B9083EDE927283409C84B346 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Sonos Remote";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Personal use";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Sonos Remote discovers and controls Sonos speakers on your local network.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Sonos Remote uses your microphone to send intercom announcements to your Sonos speakers.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fabionigi.SonosRemote;
+				PRODUCT_NAME = SonosRemote;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		63EBAC740611BC32E36AD764 /* Build configuration list for PBXNativeTarget "SonosRemote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9083EDE927283409C84B346 /* Debug */,
+				4623EC5BB0EBF0376BB9BE52 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AD4B4694F380001B78C55B4A /* Build configuration list for PBXNativeTarget "SonosRemoteTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6115F621BBFAB6664C5D4846 /* Debug */,
+				7D11E9114CA2950CCFFA419C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D321236F5DF8E7964F7CE625 /* Build configuration list for PBXProject "SonosRemote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2434CA29BC8CE0ACDDDC5189 /* Debug */,
+				42AD4390B7FD0C4A811912D3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DC04E75FECBE8A23B01B23EF /* Build configuration list for PBXNativeTarget "SonosWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1BAA8FF99ACA321103928301 /* Debug */,
+				A2E3BB6798F55C5C2C696011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9998FB5E3BF9E0DB35FF7EEA /* Project object */;
+}

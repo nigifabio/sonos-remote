@@ -1,0 +1,97 @@
+name: SonosRemote
+options:
+  bundleIdPrefix: com.fabionigi
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    ENABLE_HARDENED_RUNTIME: "NO"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  SonosRemote:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: SonosRemote
+        excludes:
+          - "Info.plist"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fabionigi.SonosRemote
+        PRODUCT_NAME: "SonosRemote"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_KEY_CFBundleDisplayName: "Sonos Remote"
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.music
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Personal use"
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Sonos Remote uses your microphone to send intercom announcements to your Sonos speakers."
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Sonos Remote discovers and controls Sonos speakers on your local network."
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "YES"
+
+  SonosRemoteTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: SonosRemoteTests
+    dependencies:
+      - target: SonosRemote
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fabionigi.SonosRemoteTests
+        GENERATE_INFOPLIST_FILE: "YES"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "YES"
+
+  # Optional live Widget. Widget extensions are always sandboxed and require
+  # sharing data via an App Group, which in turn requires the project be
+  # signed with a real Apple ID team (a free personal team is enough — see
+  # README "Optional: Widget"). Until you've signed into Xcode with an Apple
+  # ID and selected a team for this target, it will not build; it is not a
+  # dependency of the SonosRemote target so that omission never blocks the
+  # main app.
+  SonosWidgetExtension:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: SonosWidget
+      - path: SonosRemote/Shared
+      - path: SonosRemote/Models/SonosModels.swift
+      - path: SonosRemote/Networking/XMLHelpers.swift
+      - path: SonosRemote/Networking/SOAPClient.swift
+      - path: SonosRemote/Networking/SSDPDiscovery.swift
+      - path: SonosRemote/Services/SonosController.swift
+    entitlements:
+      path: SonosWidget/SonosWidget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.application-groups:
+          - group.com.fabionigi.SonosRemote
+    info:
+      path: SonosWidget/Info.plist
+      properties:
+        CFBundleDisplayName: "Sonos Widget"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fabionigi.SonosRemote.SonosWidget
+        PRODUCT_NAME: "SonosWidget"
+        GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Personal use"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+        SKIP_INSTALL: "YES"
+        CODE_SIGN_STYLE: Automatic

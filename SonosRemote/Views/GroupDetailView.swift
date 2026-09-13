@@ -1,0 +1,139 @@
+import SwiftUI
+
+struct GroupDetailView: View {
+    @EnvironmentObject var vm: SonosViewModel
+    let group: SonosGroup
+
+    private var track: TrackInfo { vm.nowPlaying[group.id] ?? TrackInfo() }
+    private var isPlaying: Bool { vm.transportStates[group.id] == .playing }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                nowPlayingCard
+                generalVolumeSection
+                if group.members.count > 1 {
+                    perDeviceVolumeSection
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: 560)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle(group.name)
+    }
+
+    private var nowPlayingCard: some View {
+        VStack(spacing: 16) {
+            albumArt
+                .frame(width: 200, height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(radius: 6)
+
+            VStack(spacing: 4) {
+                Text(track.title.isEmpty ? "Nothing playing" : track.title)
+                    .font(.title3.bold())
+                    .lineLimit(1)
+                if !track.artist.isEmpty {
+                    Text(track.artist)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                if !track.album.isEmpty {
+                    Text(track.album)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+
+            HStack(spacing: 28) {
+                Button { vm.previous(group) } label: {
+                    Image(systemName: "backward.fill")
+                }
+                Button { vm.togglePlayPause(group) } label: {
+                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                        .font(.system(size: 40))
+                }
+                .buttonStyle(.plain)
+                Button { vm.next(group) } label: {
+                    Image(systemName: "forward.fill")
+                }
+            }
+            .font(.title2)
+            .buttonStyle(.borderless)
+        }
+    }
+
+    @ViewBuilder
+    private var albumArt: some View {
+        if let url = track.albumArtURL {
+            AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    placeholderArt
+                }
+            }
+        } else {
+            placeholderArt
+        }
+    }
+
+    private var placeholderArt: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12).fill(.quaternary)
+            Image(systemName: "music.note")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var generalVolumeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(group.members.count > 1 ? "Group Volume" : "Volume", systemImage: "speaker.wave.2.fill")
+                .font(.headline)
+            VolumeSlider(value: Binding(
+                get: { Double(vm.groupVolumes[group.id] ?? 0) },
+                set: { vm.setGroupVolume(group, to: Int($0)) }
+            ))
+        }
+        .padding()
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var perDeviceVolumeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Individual Rooms", systemImage: "hifispeaker.fill")
+                .font(.headline)
+            ForEach(group.members) { device in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(device.name)
+                        .font(.subheadline)
+                    VolumeSlider(value: Binding(
+                        get: { Double(vm.deviceVolumes[device.uuid] ?? 0) },
+                        set: { vm.setDeviceVolume(device, to: Int($0)) }
+                    ))
+                }
+            }
+        }
+        .padding()
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private struct VolumeSlider: View {
+    @Binding var value: Double
+
+    var body: some View {
+        HStack {
+            Image(systemName: "speaker.fill").foregroundStyle(.secondary)
+            Slider(value: $value, in: 0...100, step: 1)
+            Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary)
+            Text("\(Int(value))")
+                .font(.caption.monospacedDigit())
+                .frame(width: 28, alignment: .trailing)
+        }
+    }
+}
