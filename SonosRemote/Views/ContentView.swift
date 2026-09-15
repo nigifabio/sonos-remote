@@ -37,9 +37,13 @@ struct ContentView: View {
                 Button {
                     vm.togglePartyMode()
                 } label: {
-                    Label("Party Mode", systemImage: vm.isPartyMode ? "party.popper.fill" : "party.popper")
+                    if vm.isBusyGrouping {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Label("Party Mode", systemImage: vm.isPartyMode ? "party.popper.fill" : "party.popper")
+                    }
                 }
-                .disabled(vm.groups.count < 2 && !vm.isPartyMode)
+                .disabled(vm.isBusyGrouping || (vm.groups.count < 2 && !vm.isPartyMode))
                 .help(vm.isPartyMode ? "Split rooms back apart" : "Group every room together")
 
                 Button {

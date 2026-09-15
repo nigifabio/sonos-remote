@@ -6,6 +6,8 @@ final class SonosViewModel: ObservableObject {
     @Published var groups: [SonosGroup] = []
     @Published var deviceVolumes: [String: Int] = [:]     // device UUID -> volume
     @Published var groupVolumes: [String: Int] = [:]      // group ID -> volume
+    @Published var deviceMutes: [String: Bool] = [:]       // device UUID -> muted
+    @Published var groupMutes: [String: Bool] = [:]        // group ID -> muted
     @Published var nowPlaying: [String: TrackInfo] = [:]  // group ID -> track
     @Published var transportStates: [String: TransportState] = [:]
     @Published var isDiscovering = false
@@ -158,6 +160,29 @@ final class SonosViewModel: ObservableObject {
         isDiscovering = true
         let discovered = await SonosController.discoverGroups()
         isDiscovering = false
+        await applyDiscoveredTopology(discovered)
+    }
+
+    /// Re-fetches topology from a device we already know about instead of
+    /// re-running full SSDP discovery (which always takes ~3-4s even when
+    /// every device is already known). Used right after a grouping action
+    /// (Party Mode, pair/unpair), where the IPs haven't changed — only the
+    /// grouping has — so this turns a multi-second silent wait into a
+    /// sub-second one. Falls back to full discovery if the known host is
+    /// unreachable (e.g. it just got unplugged).
+    private func refreshTopologyFast() async {
+        guard let knownHost = groups.first?.coordinator?.host ?? allDevices.first?.host else {
+            await refreshTopology()
+            return
+        }
+        if let discovered = try? await SonosController.fetchTopology(bootstrapHost: knownHost), !discovered.isEmpty {
+            await applyDiscoveredTopology(discovered)
+        } else {
+            await refreshTopology()
+        }
+    }
+
+    private func applyDiscoveredTopology(_ discovered: [SonosGroup]) async {
         if discovered.isEmpty {
             errorMessage = "No Sonos speakers found on this network."
             return
@@ -190,16 +215,21 @@ final class SonosViewModel: ObservableObject {
             async let track = try? SonosController.trackInfo(coordinator)
             async let state = try? SonosController.transportState(coordinator)
             async let gVolume = try? SonosController.groupVolume(group)
+            async let gMute = try? SonosController.isGroupMuted(group)
             if let track = await track {
                 nowPlaying[group.id] = track
                 recordHistoryIfChanged(group: group, track: track)
             }
             if let state = await state { transportStates[group.id] = state }
             if let gVolume = await gVolume { groupVolumes[group.id] = gVolume }
+            if let gMute = await gMute { groupMutes[group.id] = gMute }
 
             for member in group.members {
                 if let vol = try? await SonosController.volume(member) {
                     deviceVolumes[member.uuid] = vol
+                }
+                if let muted = try? await SonosController.isMuted(member) {
+                    deviceMutes[member.uuid] = muted
                 }
             }
         }
@@ -274,6 +304,18 @@ final class SonosViewModel: ObservableObject {
         Task { try? await SonosController.setVolume(device, to: value) }
     }
 
+    func toggleGroupMute(_ group: SonosGroup) {
+        let newValue = !(groupMutes[group.id] ?? false)
+        groupMutes[group.id] = newValue
+        Task { try? await SonosController.setGroupMute(group, muted: newValue) }
+    }
+
+    func toggleDeviceMute(_ device: SonosDevice) {
+        let newValue = !(deviceMutes[device.uuid] ?? false)
+        deviceMutes[device.uuid] = newValue
+        Task { try? await SonosController.setMute(device, muted: newValue) }
+    }
+
     // MARK: - Party mode
 
     /// Joins `device` into `target`'s group ("pair").
@@ -283,7 +325,7 @@ final class SonosViewModel: ObservableObject {
         Task {
             try? await SonosController.join(device, toCoordinator: coordinator)
             try? await Task.sleep(nanoseconds: 600_000_000)
-            await refreshTopology()
+            await refreshTopologyFast()
             isBusyGrouping = false
         }
     }
@@ -295,7 +337,7 @@ final class SonosViewModel: ObservableObject {
         Task {
             try? await SonosController.unjoin(device)
             try? await Task.sleep(nanoseconds: 600_000_000)
-            await refreshTopology()
+            await refreshTopologyFast()
             isBusyGrouping = false
         }
     }
@@ -310,7 +352,7 @@ final class SonosViewModel: ObservableObject {
                 await SonosController.partyMode(allDevices: allDevices, coordinator: coordinator)
             }
             try? await Task.sleep(nanoseconds: 800_000_000)
-            await refreshTopology()
+            await refreshTopologyFast()
             isBusyGrouping = false
         }
     }

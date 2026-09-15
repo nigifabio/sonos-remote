@@ -156,6 +156,29 @@ enum SonosController {
                                        arguments: [("InstanceID", "0"), ("DesiredVolume", "\(clamped)")])
     }
 
+    static func isMuted(_ device: SonosDevice) async throws -> Bool {
+        let xml = try await SOAPClient.call(host: device.host, service: .renderingControl, action: "GetMute",
+                                             arguments: [("InstanceID", "0"), ("Channel", "Master")])
+        return XMLHelpers.value(ofTag: "CurrentMute", in: xml) == "1"
+    }
+
+    static func setMute(_ device: SonosDevice, muted: Bool) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .renderingControl, action: "SetMute",
+                                       arguments: [("InstanceID", "0"), ("Channel", "Master"), ("DesiredMute", muted ? "1" : "0")])
+    }
+
+    static func isGroupMuted(_ group: SonosGroup) async throws -> Bool {
+        guard let coordinator = group.coordinator else { return false }
+        let xml = try await SOAPClient.call(host: coordinator.host, service: .groupRenderingControl, action: "GetGroupMute")
+        return XMLHelpers.value(ofTag: "CurrentMute", in: xml) == "1"
+    }
+
+    static func setGroupMute(_ group: SonosGroup, muted: Bool) async throws {
+        guard let coordinator = group.coordinator else { return }
+        _ = try await SOAPClient.call(host: coordinator.host, service: .groupRenderingControl, action: "SetGroupMute",
+                                       arguments: [("InstanceID", "0"), ("DesiredMute", muted ? "1" : "0")])
+    }
+
     // MARK: - Grouping / party mode
 
     /// Joins `device` into the group led by `coordinator`.

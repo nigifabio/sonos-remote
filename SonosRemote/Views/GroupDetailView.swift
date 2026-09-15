@@ -11,8 +11,8 @@ struct GroupDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                nowPlayingCard
                 generalVolumeSection
+                nowPlayingCard
                 if group.members.count > 1 {
                     perDeviceVolumeSection
                 }
@@ -104,10 +104,15 @@ struct GroupDetailView: View {
                     eqButton(for: coordinator)
                 }
             }
-            VolumeSlider(value: Binding(
-                get: { Double(vm.groupVolumes[group.id] ?? 0) },
-                set: { vm.setGroupVolume(group, to: Int($0)) }
-            ))
+            VolumeSlider(
+                value: Binding(
+                    get: { Double(vm.groupVolumes[group.id] ?? 0) },
+                    set: { vm.groupVolumes[group.id] = Int($0) }
+                ),
+                isMuted: vm.groupMutes[group.id] ?? false,
+                onCommit: { vm.setGroupVolume(group, to: $0) },
+                onToggleMute: { vm.toggleGroupMute(group) }
+            )
         }
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -125,10 +130,15 @@ struct GroupDetailView: View {
                         Spacer()
                         eqButton(for: device)
                     }
-                    VolumeSlider(value: Binding(
-                        get: { Double(vm.deviceVolumes[device.uuid] ?? 0) },
-                        set: { vm.setDeviceVolume(device, to: Int($0)) }
-                    ))
+                    VolumeSlider(
+                        value: Binding(
+                            get: { Double(vm.deviceVolumes[device.uuid] ?? 0) },
+                            set: { vm.deviceVolumes[device.uuid] = Int($0) }
+                        ),
+                        isMuted: vm.deviceMutes[device.uuid] ?? false,
+                        onCommit: { vm.setDeviceVolume(device, to: $0) },
+                        onToggleMute: { vm.toggleDeviceMute(device) }
+                    )
                 }
             }
         }
@@ -144,20 +154,5 @@ struct GroupDetailView: View {
         }
         .buttonStyle(.borderless)
         .help("Bass, treble, and loudness for \(device.name)")
-    }
-}
-
-private struct VolumeSlider: View {
-    @Binding var value: Double
-
-    var body: some View {
-        HStack {
-            Image(systemName: "speaker.fill").foregroundStyle(.secondary)
-            Slider(value: $value, in: 0...100, step: 1)
-            Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary)
-            Text("\(Int(value))")
-                .font(.caption.monospacedDigit())
-                .frame(width: 28, alignment: .trailing)
-        }
     }
 }

@@ -166,20 +166,17 @@ private struct MenuBarRoomRow: View {
                 }
 
                 Spacer()
-
-                Text("\(Int(volume))")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .frame(width: 22, alignment: .trailing)
             }
-            HStack(spacing: 6) {
-                Image(systemName: "speaker.fill").font(.caption2).foregroundStyle(.secondary)
-                Slider(value: Binding(
+            VolumeSlider(
+                value: Binding(
                     get: { volume },
-                    set: { vm.setDeviceVolume(device, to: Int($0)) }
-                ), in: 0...100, step: 1)
-                Image(systemName: "speaker.wave.3.fill").font(.caption2).foregroundStyle(.secondary)
-            }
+                    set: { vm.deviceVolumes[device.uuid] = Int($0) }
+                ),
+                isMuted: vm.deviceMutes[device.uuid] ?? false,
+                onCommit: { vm.setDeviceVolume(device, to: $0) },
+                onToggleMute: { vm.toggleDeviceMute(device) },
+                compact: true
+            )
         }
     }
 }

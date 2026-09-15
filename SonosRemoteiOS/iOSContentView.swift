@@ -36,9 +36,13 @@ struct iOSContentView: View {
                             Button {
                                 vm.togglePartyMode()
                             } label: {
-                                Image(systemName: vm.isPartyMode ? "party.popper.fill" : "party.popper")
+                                if vm.isBusyGrouping {
+                                    ProgressView()
+                                } else {
+                                    Image(systemName: vm.isPartyMode ? "party.popper.fill" : "party.popper")
+                                }
                             }
-                            .disabled(vm.groups.count < 2 && !vm.isPartyMode)
+                            .disabled(vm.isBusyGrouping || (vm.groups.count < 2 && !vm.isPartyMode))
 
                             Menu {
                                 Button {
