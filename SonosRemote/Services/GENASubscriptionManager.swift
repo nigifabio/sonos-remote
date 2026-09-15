@@ -85,15 +85,34 @@ final class GENASubscriptionManager {
               let sid = http.value(forHTTPHeaderField: "SID") else { return }
 
         let k = key(host: host, service: service)
-        subscriptions[k] = Subscription(sid: sid, host: host, service: service, renewTask: scheduleRenew(key: k))
+        let granted = Self.parseTimeoutSeconds(from: http)
+        subscriptions[k] = Subscription(sid: sid, host: host, service: service, renewTask: scheduleRenew(key: k, afterSeconds: granted))
     }
 
-    private func scheduleRenew(key k: String) -> Task<Void, Never> {
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 250 * 1_000_000_000) // renew before the 300s timeout
+    /// Renews at a fraction of whatever the device *actually* granted, not
+    /// just what we asked for. We always request 300s, but a UPnP device is
+    /// free to grant less — more likely on older/embedded firmware (common
+    /// on Sonos S1-era hardware) with tighter limits on how many/how long it
+    /// tracks subscriptions. Assuming 300s regardless would let the
+    /// subscription silently lapse on such a device, quietly falling back
+    /// to the slow poll with no visible symptom beyond "updates feel slow."
+    private func scheduleRenew(key k: String, afterSeconds granted: Int) -> Task<Void, Never> {
+        let renewAfter = max(30, Int(Double(granted) * 0.8))
+        return Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(renewAfter) * 1_000_000_000)
             guard !Task.isCancelled else { return }
             await self?.renew(key: k)
         }
+    }
+
+    /// Parses a GENA `TIMEOUT` response header, e.g. "Second-300". Falls
+    /// back to 300 for "Second-infinite" or anything unparseable, so we
+    /// always keep renewing rather than risk never renewing at all.
+    nonisolated static func parseTimeoutSeconds(from response: HTTPURLResponse) -> Int {
+        guard let raw = response.value(forHTTPHeaderField: "TIMEOUT"),
+              let digits = raw.split(separator: "-").last,
+              let seconds = Int(digits) else { return 300 }
+        return seconds
     }
 
     private func renew(key k: String) async {
@@ -107,7 +126,8 @@ final class GENASubscriptionManager {
 
         if let (_, response) = try? await URLSession.shared.data(for: request),
            let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) {
-            subscriptions[k]?.renewTask = scheduleRenew(key: k)
+            let granted = Self.parseTimeoutSeconds(from: http)
+            subscriptions[k]?.renewTask = scheduleRenew(key: k, afterSeconds: granted)
         } else {
             // Renewal failed (e.g. the speaker rebooted and forgot us) — start fresh.
             subscriptions.removeValue(forKey: k)

@@ -228,6 +228,15 @@ against an S1 household without any protocol-level changes. Concretely:
   transport/rendering services, so it must never be treated as a room.
 - Every SOAP call site already degrades gracefully (`try?`, default values)
   rather than crashing if an older device lacks a particular action.
+- `GENASubscriptionManager` now reads back the GENA `TIMEOUT` header a
+  device actually grants instead of assuming our requested 300s was
+  honored, and schedules renewal off that real value. Older/embedded
+  firmware is more likely to grant a shorter subscription than a current
+  S2 speaker — assuming 300s regardless would let the subscription lapse
+  silently, with no symptom beyond live updates quietly reverting to the
+  30s poll. Verified live against real (S2) hardware, which does grant
+  the full 300s requested — the fix is defensive for whatever an S1 device
+  actually grants, since I have none to test against directly.
 
 This hasn't been verified against real S1 hardware — the reference system
 used throughout development is all S2 (Era 100/300, Roam). If you hit an S1
