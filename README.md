@@ -234,13 +234,39 @@ against an S1 household without any protocol-level changes. Concretely:
   firmware is more likely to grant a shorter subscription than a current
   S2 speaker — assuming 300s regardless would let the subscription lapse
   silently, with no symptom beyond live updates quietly reverting to the
-  30s poll. Verified live against real (S2) hardware, which does grant
-  the full 300s requested — the fix is defensive for whatever an S1 device
-  actually grants, since I have none to test against directly.
+  30s poll.
+- **Multi-household discovery.** S1 and S2 devices can never join the same
+  Sonos household, but they *can* coexist on the same physical network as
+  two separate households that are invisible to each other (each one's
+  `ZoneGroupTopology` only ever reports its own members). `discoverGroups()`
+  now runs `ZoneGroupTopology.GetZoneGroupState` against every host SSDP
+  finds, not just the first one, and merges in any group whose members
+  haven't already been seen — so a second, S1-only household shows up
+  alongside the main S2 one instead of being silently dropped.
+- Each device's generation is detected via `device_description.xml`
+  (`SonosGenerationDetector`): a small set of legacy-only model numbers
+  (ZP80/90/100/120, CR100) are hardcoded as S1, and everything else falls
+  back to the `displayVersion` major version (S1 firmware tops out around
+  11.x; S2 starts at 12). The sidebar (`SidebarView`) splits into
+  "S2 System" / "S1 System (Legacy)" sections automatically the moment a
+  mixed network is detected, and the pair/unpair menu no longer offers
+  pairing a room into a group from the other household (Sonos has no
+  concept of a cross-household group, so that action would just fail).
 
-This hasn't been verified against real S1 hardware — the reference system
-used throughout development is all S2 (Era 100/300, Roam). If you hit an S1
-device that doesn't behave as expected, that's the gap to close next.
+**Verified against real S1 hardware.** Building the multi-household
+discovery above immediately surfaced a genuine S1 device already sitting
+on the test network — a Sonos Play:5 (`amelia Room`, model `S5`, firmware
+`11.16.1`) that every previous version of this app had been completely
+blind to. A full read-only pass against it, using the exact same
+unmodified protocol code paths used for S2 devices, came back clean:
+volume (`GetVolume`), transport state (`GetTransportInfo`), track info
+(`GetPositionInfo`), mute (`GetMute`), bass/treble (`RenderingControl` EQ
+actions), `ContentDirectory` Browse (Favorites), `AlarmClock.ListAlarms`,
+and a full GENA `SUBSCRIBE` cycle all succeeded with zero errors. The GENA
+`TIMEOUT` this particular S1 firmware grants is `Second-300` — the same
+as S2 — so the defensive real-timeout-parsing fix above wasn't strictly
+necessary for this device, but stays in place since other S1 firmware
+versions could differ.
 
 ## Known limitations
 

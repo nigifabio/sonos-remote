@@ -7,6 +7,7 @@ final class SonosViewModel: ObservableObject {
     @Published var deviceVolumes: [String: Int] = [:]     // device UUID -> volume
     @Published var groupVolumes: [String: Int] = [:]      // group ID -> volume
     @Published var deviceMutes: [String: Bool] = [:]       // device UUID -> muted
+    @Published var deviceGenerations: [String: SonosSystemGeneration] = [:] // device UUID -> S1/S2/unknown
     @Published var groupMutes: [String: Bool] = [:]        // group ID -> muted
     @Published var nowPlaying: [String: TrackInfo] = [:]  // group ID -> track
     @Published var transportStates: [String: TransportState] = [:]
@@ -114,6 +115,17 @@ final class SonosViewModel: ObservableObject {
         groups.first { $0.members.contains(device) }
     }
 
+    func generation(for device: SonosDevice) -> SonosSystemGeneration {
+        deviceGenerations[device.uuid] ?? .unknown
+    }
+
+    /// A group's generation, taken from its coordinator — S1 and S2 devices
+    /// can never share a household, so every member of a real group is
+    /// necessarily the same generation.
+    func generation(for group: SonosGroup) -> SonosSystemGeneration {
+        group.coordinator.map { generation(for: $0) } ?? .unknown
+    }
+
     /// The song playing in `device`'s room (shared across the whole group it's in, if any).
     func trackInfo(for device: SonosDevice) -> TrackInfo? {
         group(containing: device).flatMap { nowPlaying[$0.id] }
@@ -193,7 +205,17 @@ final class SonosViewModel: ObservableObject {
             selectedGroupID = discovered.first?.id
         }
         await GENASubscriptionManager.shared.updateSubscriptions(coordinatorHosts: discovered.compactMap { $0.coordinator?.host })
+        async let generations = SonosController.detectGenerations(for: discovered.flatMap(\.members))
         await refreshNowPlayingAndVolumes()
+        deviceGenerations = await generations
+    }
+
+    /// True the moment a second Sonos household — running the *other*
+    /// generation — is detected on the network (Sonos explicitly supports
+    /// running S1 and S2 households side by side during a phased upgrade).
+    var hasMixedGenerations: Bool {
+        let generations = Set(allDevices.compactMap { deviceGenerations[$0.uuid] }.filter { $0 != .unknown })
+        return generations.count > 1
     }
 
     /// Refreshes just one group's now-playing/transport/volume — used after a

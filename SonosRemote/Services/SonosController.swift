@@ -6,16 +6,64 @@ enum SonosController {
 
     // MARK: - Discovery & topology
 
-    /// Finds Sonos hosts via SSDP, then asks the first one for the full
-    /// household topology (every room, its IP, and how rooms are grouped).
+    /// Finds Sonos hosts via SSDP, then asks each one for its household's
+    /// full topology (every room, its IP, and how rooms are grouped).
+    ///
+    /// A Sonos household only ever reports the rooms that belong to it —
+    /// asking any one member returns the *whole* household's topology, but
+    /// never a different household's, even if that other household's
+    /// speakers are answering SSDP on the very same LAN. Sonos explicitly
+    /// supports running an S1 household and an S2 household side by side on
+    /// one network during a phased upgrade, so a single bootstrap host isn't
+    /// enough to see everything — this queries every responding host and
+    /// merges together whichever *distinct* households turn up, recognizing
+    /// a repeat household by the fact its member UUIDs are already known
+    /// (so a 5-speaker household still costs one real topology fetch, not
+    /// five — the other four are skipped once their members are seen).
     static func discoverGroups() async -> [SonosGroup] {
         let hosts = await SSDPDiscovery.discoverHosts()
+        var allGroups: [SonosGroup] = []
+        var seenMemberUUIDs = Set<String>()
         for host in hosts {
-            if let groups = try? await fetchTopology(bootstrapHost: host), !groups.isEmpty {
-                return groups
+            guard let groups = try? await fetchTopology(bootstrapHost: host), !groups.isEmpty else { continue }
+            let memberUUIDs = Set(groups.flatMap { $0.members.map(\.uuid) })
+            guard !memberUUIDs.isSubset(of: seenMemberUUIDs) else { continue }
+            seenMemberUUIDs.formUnion(memberUUIDs)
+            for group in groups where !allGroups.contains(where: { $0.id == group.id }) {
+                allGroups.append(group)
             }
         }
-        return []
+        return allGroups
+    }
+
+    /// Fetches `/xml/device_description.xml` and pulls the fields relevant
+    /// to identifying the device — standard UPnP device description.
+    static func fetchDeviceDescription(_ device: SonosDevice) async -> SonosDeviceDescription? {
+        guard let url = URL(string: "http://\(device.host):1400/xml/device_description.xml") else { return nil }
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let xml = String(data: data, encoding: .utf8) else { return nil }
+        return SonosDeviceDescription(
+            modelName: XMLHelpers.value(ofTag: "modelName", in: xml) ?? "",
+            modelNumber: XMLHelpers.value(ofTag: "modelNumber", in: xml) ?? "",
+            displayVersion: XMLHelpers.value(ofTag: "displayVersion", in: xml) ?? ""
+        )
+    }
+
+    /// Classifies every device concurrently — used once per full topology
+    /// refresh (not on every quick poll) since it's one extra HTTP GET per
+    /// physical speaker.
+    static func detectGenerations(for devices: [SonosDevice]) async -> [String: SonosSystemGeneration] {
+        await withTaskGroup(of: (String, SonosSystemGeneration).self) { taskGroup in
+            for device in devices {
+                taskGroup.addTask {
+                    guard let description = await fetchDeviceDescription(device) else { return (device.uuid, .unknown) }
+                    return (device.uuid, SonosGenerationDetector.detect(from: description))
+                }
+            }
+            var result: [String: SonosSystemGeneration] = [:]
+            for await (uuid, generation) in taskGroup { result[uuid] = generation }
+            return result
+        }
     }
 
     static func fetchTopology(bootstrapHost: String) async throws -> [SonosGroup] {
