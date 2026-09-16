@@ -116,11 +116,23 @@ xcodegen generate
 xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemoteTests -destination 'platform=macOS,arch=arm64' test
 ```
 
-Covers XML/SOAP/DIDL parsing (including regression tests for two real bugs —
-see below), zone-topology parsing against realistic fixtures, the WAV file
-builder used by Intercom, GENA event parsing (`LastChange` → transport
-state/volume), `SonosViewModel`'s pure logic, and the widget's shared-state
-JSON encoding.
+129 tests. Covers XML/SOAP/DIDL parsing (including regression tests for two
+real bugs — see below), zone-topology parsing against realistic fixtures,
+the WAV file builder used by Intercom, GENA event parsing (`LastChange` →
+transport state/volume), `SonosViewModel`'s pure logic, the widget's
+shared-state JSON encoding, the S1/S2 sidebar split and cross-household
+pairing guard, and the local-library path-traversal guard.
+
+Every `SonosController` function that sends a SOAP action (play/pause,
+volume, mute, EQ, alarms, queue management, grouping) also has direct
+regression coverage: `SOAPClient` takes an injectable `SOAPTransport`
+(defaulting to `URLSession.shared` everywhere in production), and
+`FakeSOAPTransport` records each request and returns canned XML — so tests
+assert the exact SOAP action/arguments sent and how the response gets
+parsed, without touching real hardware. Discovery (SSDP + device
+description fetches) isn't part of this — it's covered by
+`parseZoneGroups`/`SonosGenerationDetector` tests plus this project's
+live-hardware verification passes instead.
 
 ## Optional: live Widget (Mac)
 

@@ -110,6 +110,7 @@ targets:
       - path: SonosRemote/Shared
       - path: SonosRemote/Models/SonosModels.swift
       - path: SonosRemote/Networking/XMLHelpers.swift
+      - path: SonosRemote/Networking/SOAPTransport.swift
       - path: SonosRemote/Networking/SOAPClient.swift
       - path: SonosRemote/Networking/SSDPDiscovery.swift
       - path: SonosRemote/Services/SonosController.swift

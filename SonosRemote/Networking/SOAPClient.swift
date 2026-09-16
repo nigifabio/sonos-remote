@@ -40,7 +40,8 @@ enum SOAPClient {
         host: String,
         service: SonosService,
         action: String,
-        arguments: [(String, String)] = [("InstanceID", "0")]
+        arguments: [(String, String)] = [("InstanceID", "0")],
+        transport: SOAPTransport = URLSession.shared
     ) async throws -> String {
         guard let url = URL(string: "http://\(host):1400\(service.controlPath)") else {
             throw SOAPError(message: "Bad URL for host \(host)")
@@ -67,7 +68,7 @@ enum SOAPClient {
         request.setValue("\"\(service.urn)#\(action)\"", forHTTPHeaderField: "SOAPACTION")
         request.httpBody = body.data(using: .utf8)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await transport.data(for: request)
         let text = String(data: data, encoding: .utf8) ?? ""
 
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
