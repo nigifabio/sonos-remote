@@ -10,10 +10,10 @@ struct SidebarView: View {
     /// rather than always showing "S2 System" labeling for the common case
     /// of a single, ordinary household.
     private var s1Devices: [SonosDevice] {
-        vm.allDevicesSorted.filter { vm.generation(for: $0) == .s1 }
+        SonosHouseholdGrouping.split(vm.allDevicesSorted, generations: vm.deviceGenerations).s1
     }
     private var otherDevices: [SonosDevice] {
-        vm.allDevicesSorted.filter { vm.generation(for: $0) != .s1 }
+        SonosHouseholdGrouping.split(vm.allDevicesSorted, generations: vm.deviceGenerations).other
     }
 
     var body: some View {
@@ -90,12 +90,8 @@ private struct RoomRow: View {
             }
         }
         // A group in a different Sonos household (a different S1/S2 system)
-        // can never accept this device — Sonos itself has no such thing as
-        // a cross-household group, so offering it here would just fail
-        // silently when attempted.
-        let otherGroups = vm.groups.filter {
-            !$0.members.contains(device) && vm.generation(for: $0) == vm.generation(for: device)
-        }
+        // can never accept this device — see SonosHouseholdGrouping.
+        let otherGroups = SonosHouseholdGrouping.pairableGroups(for: device, in: vm.groups, generations: vm.deviceGenerations)
         if !otherGroups.isEmpty {
             Menu("Pair with…") {
                 ForEach(otherGroups) { targetGroup in

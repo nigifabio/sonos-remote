@@ -73,9 +73,11 @@ final class LocalHTTPServer {
     }
 
     /// Resolves a `/library/...` request path against `root`, rejecting
-    /// anything that would escape it (e.g. a `..` component), and reads the
-    /// file. Runs on `queue`, same as the rest of `handle`.
-    private func readLibraryFile(requestPath: String, root: URL) -> (Data, String)? {
+    /// anything that would escape it (e.g. a `..` component). Pure and
+    /// side-effect-free (no disk I/O) so it can be unit tested directly
+    /// instead of only through a live HTTP round-trip.
+    static func resolvedLibraryFileURL(requestPath: String, root: URL) -> URL? {
+        guard requestPath.hasPrefix(LocalLibraryService.pathPrefix) else { return nil }
         let encodedRelative = String(requestPath.dropFirst(LocalLibraryService.pathPrefix.count))
         guard let relative = encodedRelative.removingPercentEncoding, !relative.isEmpty,
               !relative.split(separator: "/").contains("..") else { return nil }
@@ -83,7 +85,14 @@ final class LocalHTTPServer {
         let fileURL = root.appendingPathComponent(relative)
         let standardizedFile = fileURL.standardizedFileURL.path
         let standardizedRoot = root.standardizedFileURL.path
-        guard standardizedFile.hasPrefix(standardizedRoot + "/"),
+        guard standardizedFile.hasPrefix(standardizedRoot + "/") else { return nil }
+        return fileURL
+    }
+
+    /// Resolves and reads a `/library/...` request. Runs on `queue`, same as
+    /// the rest of `handle`.
+    private func readLibraryFile(requestPath: String, root: URL) -> (Data, String)? {
+        guard let fileURL = LocalHTTPServer.resolvedLibraryFileURL(requestPath: requestPath, root: root),
               let data = try? Data(contentsOf: fileURL) else { return nil }
         return (data, LocalLibraryService.contentType(forExtension: fileURL.pathExtension))
     }
