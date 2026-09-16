@@ -24,6 +24,13 @@ eventing (GENA) instead of just polling.
   one-tap access with no OAuth needed on our side.
 - **Queue management**: view, reorder (drag), remove, and jump to any track
   in the current play queue.
+- **Local Library ("My Mac", Mac only)**: point Settings ▸ Local Library at
+  any folder and its audio files (mp3/m4a/aac/flac/wav/aiff/alac) show up
+  under the "My Mac" tab in the Library browser, playable on any room —
+  useful for music that was never set up as a Sonos-attached NAS share.
+  Files are served over the LAN by the same tiny built-in HTTP server that
+  already serves Intercom announcements (`LocalHTTPServer`); Sonos fetches
+  them with a normal HTTP GET, the same way it fetches anything else.
 - **Alarms & sleep timer**: list/create/enable/delete alarms (ring with the
   built-in Sonos chime), and set a per-room sleep timer.
 - **Bass/treble/loudness (EQ)** controls per physical speaker.

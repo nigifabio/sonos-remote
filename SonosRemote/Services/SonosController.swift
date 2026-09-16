@@ -382,6 +382,25 @@ enum SonosController {
         try await play(device)
     }
 
+    /// Replaces the queue with `items` in order and starts playback — used
+    /// for "play all" on a locally-scanned folder (`LocalLibraryService`),
+    /// where each file is its own plain HTTP URI rather than a single
+    /// Sonos-recognized container object `play(_:on:)` can enqueue whole.
+    static func playQueue(_ items: [BrowseItem], on device: SonosDevice) async throws {
+        guard !items.isEmpty else { return }
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "RemoveAllTracksFromQueue")
+        for item in items {
+            _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "AddURIToQueue",
+                                           arguments: [("InstanceID", "0"), ("EnqueuedURI", item.uri),
+                                                       ("EnqueuedURIMetaData", item.metadata),
+                                                       ("DesiredFirstTrackNumberEnqueued", "0"), ("EnqueueAsNext", "0")])
+        }
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "SetAVTransportURI",
+                                       arguments: [("InstanceID", "0"), ("CurrentURI", "x-rincon-queue:\(device.uuid)#0"),
+                                                   ("CurrentURIMetaData", "")])
+        try await play(device)
+    }
+
     // MARK: - Queue management
 
     static func playFromQueue(_ device: SonosDevice, trackNumber: Int) async throws {

@@ -13,12 +13,18 @@ struct LibraryView: View {
         case favorites = "Favorites"
         case playlists = "Playlists"
         case library = "Local Library"
+        #if os(macOS)
+        case myMac = "My Mac"
+        #endif
         var id: String { rawValue }
         var objectID: String {
             switch self {
             case .favorites: return BrowseRoot.favorites
             case .playlists: return BrowseRoot.playlists
             case .library: return BrowseRoot.musicLibraryRoot
+            #if os(macOS)
+            case .myMac: return ""
+            #endif
             }
         }
     }
@@ -80,6 +86,16 @@ struct LibraryView: View {
     }
 
     private func load() async {
+        #if os(macOS)
+        if root == .myMac {
+            isLoading = true
+            errorMessage = nil
+            items = loadMyMacItems()
+            if items.isEmpty { errorMessage = myMacEmptyMessage }
+            isLoading = false
+            return
+        }
+        #endif
         guard let device = group.coordinator else { return }
         isLoading = true
         errorMessage = nil
@@ -103,9 +119,34 @@ struct LibraryView: View {
     }
 
     private func play(_ item: BrowseItem) async {
+        #if os(macOS)
+        if root == .myMac, item.isContainer, let rootURL = myMacRootURL {
+            vm.playLocalFiles(LocalLibraryService.files(root: rootURL, relativePath: item.id), in: group)
+            dismiss()
+            return
+        }
+        #endif
         vm.playLibraryItem(item, in: group)
         dismiss()
     }
+
+    #if os(macOS)
+    private var myMacRootURL: URL? {
+        let path = UserDefaults.standard.string(forKey: LocalLibraryService.defaultsKey) ?? ""
+        guard !path.isEmpty else { return nil }
+        return URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    private func loadMyMacItems() -> [BrowseItem] {
+        guard let rootURL = myMacRootURL else { return [] }
+        let relativePath = path.last?.id ?? ""
+        return LocalLibraryService.list(root: rootURL, relativePath: relativePath)
+    }
+
+    private var myMacEmptyMessage: String {
+        myMacRootURL == nil ? "No folder set — pick one in Settings." : "Nothing here."
+    }
+    #endif
 }
 
 private struct LibraryRow: View {

@@ -15,7 +15,12 @@ struct SonosRemoteApp: App {
                 .environmentObject(viewModel)
                 .frame(minWidth: 820, minHeight: 560)
                 .preferredColorScheme(colorScheme)
-                .onAppear { viewModel.start() }
+                .onAppear {
+                    viewModel.start()
+                    if let path = UserDefaults.standard.string(forKey: LocalLibraryService.defaultsKey), !path.isEmpty {
+                        LocalHTTPServer.shared.setLibraryRoot(URL(fileURLWithPath: path, isDirectory: true))
+                    }
+                }
         }
         .windowResizability(.contentSize)
 

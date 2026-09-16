@@ -103,6 +103,18 @@ final class SonosViewModel: ObservableObject {
         }
     }
 
+    /// Plays every file in `files` (in order) on `group`'s coordinator —
+    /// "play all" for a folder from the local library ("My Mac" tab), which
+    /// has no single Sonos-recognized container object to enqueue whole.
+    func playLocalFiles(_ files: [BrowseItem], in group: SonosGroup) {
+        guard let device = group.coordinator, !files.isEmpty else { return }
+        Task {
+            try? await SonosController.playQueue(files, on: device)
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            await refreshNowPlaying(for: group)
+        }
+    }
+
     var allDevices: [SonosDevice] { groups.flatMap(\.members) }
     var allDevicesSorted: [SonosDevice] { allDevices.sorted { $0.name < $1.name } }
     var isPartyMode: Bool { groups.count == 1 && (groups.first?.members.count ?? 0) > 1 }

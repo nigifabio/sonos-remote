@@ -11,10 +11,12 @@
 		01B5464F0586F183B5C95792 /* SonosRemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F55FEBC79B962B6AC4CD430C /* SonosRemoteApp.swift */; };
 		08350077AB8BB560630517A2 /* SOAPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7F4348EDEE638AAB2CF7B0 /* SOAPClient.swift */; };
 		09D496D5D17C726B56AB8957 /* SonosAlarm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59943AC6548FF998D36527D1 /* SonosAlarm.swift */; };
+		0D7E2AA97D5741A73DA88FA9 /* LocalLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251D9D70A83072FE77BABAE3 /* LocalLibraryService.swift */; };
 		10A4074773C40C98D9247B66 /* SonosController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFC17C3DDB1213040324849 /* SonosController.swift */; };
 		12D6BD37F2B756E94F9EB575 /* SonosRoomEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08F9E1F561E73ED50B6998D1 /* SonosRoomEntity.swift */; };
 		141C296DEAB2661467A253BC /* AlarmsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FCD7AC1E900A8C91E2A2642 /* AlarmsView.swift */; };
 		17F595F5C440D7422042663F /* DIDLParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9BE5C6BD004E7B154EAD7E /* DIDLParser.swift */; };
+		1E9D27E5D2F26A9A2EEFAD3C /* LocalLibraryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F487B31E1A910FC47419151 /* LocalLibraryServiceTests.swift */; };
 		219E520770AC5972D4B325D1 /* PlaybackHistoryEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 910845414472015103A1D0AD /* PlaybackHistoryEntry.swift */; };
 		2283A6946E41559ED76A9E21 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6607316C18066AE866C1D09C /* GroupDetailView.swift */; };
 		23009B3F81DC6B1404A8C4D8 /* GENATimeoutParsingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00C21136FC3539E14D06ED7 /* GENATimeoutParsingTests.swift */; };
@@ -31,6 +33,7 @@
 		47CDEC842CCA53DB4781DD04 /* AlarmsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FCD7AC1E900A8C91E2A2642 /* AlarmsView.swift */; };
 		4BC5948E37F7964DDED2F945 /* LocalHTTPServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72A4508FE434EC9DC4953F5C /* LocalHTTPServer.swift */; };
 		4C803DF87E90FFC7EB31FF1F /* DIDLParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E9BE5C6BD004E7B154EAD7E /* DIDLParser.swift */; };
+		4FF4BC3AAF6A603F6DD6036B /* LocalLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251D9D70A83072FE77BABAE3 /* LocalLibraryService.swift */; };
 		526782B2CD6DEE424FF021F9 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9585CA54B50D7D101D8B88E9 /* QueueView.swift */; };
 		53AD8A506E2204B394E96BD3 /* SonosController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFC17C3DDB1213040324849 /* SonosController.swift */; };
 		53E2B657E9C4741F81D884F5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2023BD17607A6E248A7DD0DC /* Assets.xcassets */; };
@@ -116,8 +119,10 @@
 		18CDED5610AE5E5998912834 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1A0DE9E68D88E104FFC527E1 /* SonosViewModelMuteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosViewModelMuteTests.swift; sourceTree = "<group>"; };
 		1E9BE5C6BD004E7B154EAD7E /* DIDLParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIDLParser.swift; sourceTree = "<group>"; };
+		1F487B31E1A910FC47419151 /* LocalLibraryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLibraryServiceTests.swift; sourceTree = "<group>"; };
 		2023BD17607A6E248A7DD0DC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		23784B31B65CB7475B2DF78C /* SonosWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosWidgetBundle.swift; sourceTree = "<group>"; };
+		251D9D70A83072FE77BABAE3 /* LocalLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLibraryService.swift; sourceTree = "<group>"; };
 		27D958A9EC2F4961E7789319 /* SonosShortcutsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosShortcutsProvider.swift; sourceTree = "<group>"; };
 		318B0ED4207D654F987AE9D0 /* SonosWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SonosWidget.entitlements; sourceTree = "<group>"; };
 		35C0C30D35102ADDA0D6A46F /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
@@ -198,6 +203,7 @@
 				8855A0BA5E8225237500A45E /* GENASubscriptionManager.swift */,
 				D0BF698D85AEB0C8746C5F18 /* IntercomService.swift */,
 				72A4508FE434EC9DC4953F5C /* LocalHTTPServer.swift */,
+				251D9D70A83072FE77BABAE3 /* LocalLibraryService.swift */,
 				3AFC17C3DDB1213040324849 /* SonosController.swift */,
 			);
 			path = Services;
@@ -235,6 +241,7 @@
 				EE7764A99C59F69B5C41A5AF /* GENASubscriptionManagerTests.swift */,
 				A00C21136FC3539E14D06ED7 /* GENATimeoutParsingTests.swift */,
 				10C8BFDC3EFBFBFCB115FCAF /* IntercomWAVTests.swift */,
+				1F487B31E1A910FC47419151 /* LocalLibraryServiceTests.swift */,
 				D35179C83D77019D0ABD5EC1 /* MusicServiceTests.swift */,
 				42969594FCD613A94D9F444F /* SonosControllerParsingTests.swift */,
 				0C51D576069F32AFF94C7DB1 /* SonosGenerationDetectorTests.swift */,
@@ -487,6 +494,7 @@
 				BC20B9BF98DC9747EDC3809A /* HistoryView.swift in Sources */,
 				31BC9A3E6FDF8161C56B306F /* LibraryView.swift in Sources */,
 				4BC5948E37F7964DDED2F945 /* LocalHTTPServer.swift in Sources */,
+				0D7E2AA97D5741A73DA88FA9 /* LocalLibraryService.swift in Sources */,
 				8971380F07FBA30C9AFDE7D9 /* PlaybackHistoryEntry.swift in Sources */,
 				C7658F596146BEFF9FAAE3DE /* QueueView.swift in Sources */,
 				FFDBDC49D5318D374293C1E4 /* SOAPClient.swift in Sources */,
@@ -532,6 +540,7 @@
 				A7BE0A7F0CF40F927998612F /* GENASubscriptionManagerTests.swift in Sources */,
 				23009B3F81DC6B1404A8C4D8 /* GENATimeoutParsingTests.swift in Sources */,
 				5E8D52AC5C555A4DB64BFAF8 /* IntercomWAVTests.swift in Sources */,
+				1E9D27E5D2F26A9A2EEFAD3C /* LocalLibraryServiceTests.swift in Sources */,
 				377BF533CE66D837EB1A3E53 /* MusicServiceTests.swift in Sources */,
 				AEF8759F99068B5C6BAA36ED /* SonosControllerParsingTests.swift in Sources */,
 				6EC312A3C1C8D569F5196CB6 /* SonosGenerationDetectorTests.swift in Sources */,
@@ -563,6 +572,7 @@
 				5C02CB6ECD282BAAAA952C75 /* IntercomView.swift in Sources */,
 				B7689BC70A04C8805EFBE376 /* LibraryView.swift in Sources */,
 				8F63407A3A73450EFB43E107 /* LocalHTTPServer.swift in Sources */,
+				4FF4BC3AAF6A603F6DD6036B /* LocalLibraryService.swift in Sources */,
 				7170279977338BE5833B5583 /* MenuBarView.swift in Sources */,
 				219E520770AC5972D4B325D1 /* PlaybackHistoryEntry.swift in Sources */,
 				526782B2CD6DEE424FF021F9 /* QueueView.swift in Sources */,

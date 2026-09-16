@@ -5,6 +5,7 @@ import AppKit
 
 struct SettingsView: View {
     @AppStorage("appTheme") private var themeRaw: String = AppTheme.system.rawValue
+    @AppStorage(LocalLibraryService.defaultsKey) private var localLibraryPath: String = ""
     @State private var launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
     @State private var micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
@@ -49,6 +50,31 @@ struct SettingsView: View {
                 Text("macOS doesn't let apps change these directly — use the buttons above to jump to System Settings.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+            }
+
+            Section("Local Library") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(localLibraryPath.isEmpty ? "No folder set" : localLibraryPath)
+                        .font(.caption)
+                        .foregroundStyle(localLibraryPath.isEmpty ? .secondary : .primary)
+                        .lineLimit(2)
+                        .truncationMode(.middle)
+                    HStack {
+                        Button("Choose Folder…", action: chooseLocalLibraryFolder)
+                            .controlSize(.small)
+                        if !localLibraryPath.isEmpty {
+                            Button("Clear", role: .destructive) {
+                                localLibraryPath = ""
+                                LocalHTTPServer.shared.setLibraryRoot(nil)
+                            }
+                            .controlSize(.small)
+                        }
+                    }
+                    Text("Music in this folder shows up under \"My Mac\" in the Library browser, served over your LAN the same way Intercom serves announcements.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 2)
             }
 
             Section("Startup") {
@@ -156,6 +182,17 @@ struct SettingsView: View {
     private func openSystemSettings(pane: String) {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    private func chooseLocalLibraryFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Choose"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        localLibraryPath = url.path
+        LocalHTTPServer.shared.setLibraryRoot(url)
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
