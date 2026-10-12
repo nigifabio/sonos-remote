@@ -115,6 +115,46 @@ final class GENASubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(wanted.count, pairs.count, "No duplicate subscriptions")
     }
 
+    func testHandleNotifyDispatchesPlayMode() {
+        let manager = GENASubscriptionManager()
+        var received: (host: String, mode: PlayMode)?
+        manager.onPlayModeChange = { host, mode in received = (host, mode) }
+        let lastChange = """
+        <Event xmlns="urn:schemas-upnp-org:metadata-1-0/AVT/"><InstanceID val="0"><TransportState val="PLAYING"/><CurrentPlayMode val="SHUFFLE"/></InstanceID></Event>
+        """
+        let body = "<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\"><e:property><LastChange>\(XMLHelpers.escapeXML(lastChange))</LastChange></e:property></e:propertyset>"
+        manager.handleNotify(path: "/notify/10.0.0.10/AVTransport", body: body)
+
+        XCTAssertEqual(received?.host, "10.0.0.10")
+        XCTAssertEqual(received?.mode, PlayMode(shuffle: true, repeatMode: .all))
+    }
+
+    /// A ZoneGroupTopology event carries the household's whole topology in
+    /// the same shape GetZoneGroupState returns, escaped.
+    func testHandleNotifyDispatchesTopologyTaggedWithItsHousehold() {
+        let manager = GENASubscriptionManager()
+        var received: [SonosGroup]?
+        manager.onTopologyChange = { received = $0 }
+        let state = """
+        <ZoneGroupState><ZoneGroups><ZoneGroup Coordinator="RINCON_B" ID="RINCON_B:7"><ZoneGroupMember UUID="RINCON_B" ZoneName="Office" Location="http://10.0.0.11:1400/xml/device_description.xml"/><ZoneGroupMember UUID="RINCON_A" ZoneName="Bedroom" Location="http://10.0.0.10:1400/xml/device_description.xml"/></ZoneGroup><ZoneGroup Coordinator="RINCON_C" ID="RINCON_C:2"><ZoneGroupMember UUID="RINCON_C" ZoneName="Kitchen" Location="http://10.0.0.12:1400/xml/device_description.xml"/></ZoneGroup></ZoneGroups><VanishedDevices></VanishedDevices></ZoneGroupState>
+        """
+        let body = "<e:propertyset xmlns:e=\"urn:schemas-upnp-org:event-1-0\"><e:property><ZoneGroupState>\(XMLHelpers.escapeXML(state))</ZoneGroupState></e:property></e:propertyset>"
+        manager.handleNotify(path: "/notify/10.0.0.11/ZoneGroupTopology", body: body)
+
+        XCTAssertEqual(received?.map(\.id), ["RINCON_B:7", "RINCON_C:2"])
+        XCTAssertEqual(received?.first?.members.map(\.name), ["Office", "Bedroom"])
+        XCTAssertEqual(Set(received?.map(\.householdID) ?? []), ["RINCON_A"])
+    }
+
+    func testDesiredSubscriptionsAddOneTopologySubscriptionPerHousehold() {
+        let wanted = GENASubscriptionManager.desiredSubscriptions(
+            coordinatorHosts: ["10.0.0.10"], memberHosts: ["10.0.0.10", "10.0.0.11"],
+            topologyHosts: ["10.0.0.10", "10.0.0.212"]
+        )
+        let topology = wanted.filter { $0.service == .zoneGroupTopology }.map(\.host)
+        XCTAssertEqual(topology, ["10.0.0.10", "10.0.0.212"])
+    }
+
     func testHandleNotifyIgnoresMalformedPath() {
         let manager = GENASubscriptionManager()
         var called = false

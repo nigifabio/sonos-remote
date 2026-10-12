@@ -42,7 +42,7 @@ struct iOSContentView: View {
                                     Image(systemName: vm.isPartyMode ? "party.popper.fill" : "party.popper")
                                 }
                             }
-                            .disabled(vm.isBusyGrouping || (vm.groups.count < 2 && !vm.isPartyMode))
+                            .disabled(vm.isBusyGrouping || !vm.canTogglePartyMode)
 
                             Menu {
                                 Button {
@@ -71,6 +71,10 @@ struct iOSContentView: View {
                                 } label: {
                                     Label("Recently Played", systemImage: "clock.arrow.circlepath")
                                 }
+
+                                Divider()
+
+                                RoutineMenuItems()
                             } label: {
                                 Image(systemName: "ellipsis.circle")
                             }
@@ -91,7 +95,7 @@ struct iOSContentView: View {
             if let group = vm.selectedGroup { LibraryView(group: group).environmentObject(vm) }
         }
         .sheet(isPresented: $showingQueue) {
-            if let group = vm.selectedGroup { QueueView(group: group) }
+            if let group = vm.selectedGroup { QueueView(group: group).environmentObject(vm) }
         }
         .sheet(isPresented: $showingAlarms) {
             AlarmsView().environmentObject(vm)
@@ -102,5 +106,6 @@ struct iOSContentView: View {
         .sheet(isPresented: $showingHistory) {
             HistoryView().environmentObject(vm)
         }
+        .bannerOverlay(vm)
     }
 }

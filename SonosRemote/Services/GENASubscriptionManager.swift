@@ -26,6 +26,10 @@ final class GENASubscriptionManager {
     /// volume: it's derived from every member.
     var onGroupVolumeChange: ((_ coordinatorHost: String, _ volume: Int) -> Void)?
     var onGroupMuteChange: ((_ coordinatorHost: String, _ muted: Bool) -> Void)?
+    var onPlayModeChange: ((_ coordinatorHost: String, _ mode: PlayMode) -> Void)?
+    /// A household's grouping changed (from any controller, or a speaker
+    /// appeared/vanished). Carries that household's complete new topology.
+    var onTopologyChange: ((_ groups: [SonosGroup]) -> Void)?
 
     func start() {
         guard !started else { return }
@@ -41,8 +45,15 @@ final class GENASubscriptionManager {
     /// volume come from each group's coordinator, but a speaker's own volume
     /// only ever comes from that speaker, so every member needs its own
     /// RenderingControl subscription.
-    nonisolated static func desiredSubscriptions(coordinatorHosts: [String], memberHosts: [String]) -> [(host: String, service: SonosService)] {
+    nonisolated static func desiredSubscriptions(
+        coordinatorHosts: [String], memberHosts: [String], topologyHosts: [String] = []
+    ) -> [(host: String, service: SonosService)] {
         var result: [(host: String, service: SonosService)] = []
+        // One speaker per household is enough for topology: any member
+        // reports its whole household.
+        for host in Set(topologyHosts).sorted() {
+            result.append((host, .zoneGroupTopology))
+        }
         for host in Set(coordinatorHosts).sorted() {
             result.append((host, .avTransport))
             result.append((host, .groupRenderingControl))
@@ -55,8 +66,10 @@ final class GENASubscriptionManager {
 
     /// Ensures exactly the subscriptions this topology needs are active;
     /// drops any that no longer apply (a room left/joined a group).
-    func updateSubscriptions(coordinatorHosts: [String], memberHosts: [String]) async {
-        let wanted = Self.desiredSubscriptions(coordinatorHosts: coordinatorHosts, memberHosts: memberHosts)
+    func updateSubscriptions(coordinatorHosts: [String], memberHosts: [String], topologyHosts: [String] = []) async {
+        let wanted = Self.desiredSubscriptions(
+            coordinatorHosts: coordinatorHosts, memberHosts: memberHosts, topologyHosts: topologyHosts
+        )
         let desiredKeys = Set(wanted.map { key(host: $0.host, service: $0.service) })
 
         for existingKey in subscriptions.keys where !desiredKeys.contains(existingKey) {
@@ -184,6 +197,17 @@ final class GENASubscriptionManager {
             return
         }
 
+        // ZoneGroupTopology carries the household's full topology, escaped,
+        // in the same shape GetZoneGroupState returns.
+        if serviceRaw == SonosService.zoneGroupTopology.rawValue {
+            guard let stateEscaped = XMLHelpers.value(ofTag: "ZoneGroupState", in: body) else { return }
+            let groups = SonosController.taggedWithHousehold(
+                SonosController.parseZoneGroups(from: XMLHelpers.unescapeXML(stateEscaped))
+            )
+            if !groups.isEmpty { onTopologyChange?(groups) }
+            return
+        }
+
         guard let lastChangeEscaped = XMLHelpers.value(ofTag: "LastChange", in: body) else { return }
         let lastChange = XMLHelpers.unescapeXML(lastChangeEscaped)
 
@@ -191,6 +215,9 @@ final class GENASubscriptionManager {
             if let raw = Self.attributeValue(tag: "TransportState", attribute: "val", in: lastChange),
                let state = TransportState(rawValue: raw) {
                 onTransportChange?(host, state)
+            }
+            if let raw = Self.attributeValue(tag: "CurrentPlayMode", attribute: "val", in: lastChange) {
+                onPlayModeChange?(host, PlayMode(sonosValue: raw))
             }
         } else if serviceRaw == SonosService.renderingControl.rawValue {
             if let raw = Self.attributeValue(tag: "Volume", attribute: "val", in: lastChange, requiring: ("channel", "Master")),

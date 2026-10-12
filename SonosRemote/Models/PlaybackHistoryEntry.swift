@@ -19,8 +19,12 @@ struct PlaybackHistoryEntry: Identifiable, Codable, Equatable {
     /// entry was only observed as a track change from an unknown source
     /// (the official Sonos app, a physical remote, Spotify Connect, etc).
     let sourceLabel: String?
+    /// The track's Sonos URI when it was observed playing. Optional so
+    /// history saved before this field existed still loads.
+    let uri: String?
 
-    init(groupName: String, title: String, artist: String, album: String, service: MusicService, sourceLabel: String? = nil) {
+    init(groupName: String, title: String, artist: String, album: String, service: MusicService,
+         sourceLabel: String? = nil, uri: String? = nil) {
         self.id = UUID()
         self.date = Date()
         self.groupName = groupName
@@ -29,5 +33,6 @@ struct PlaybackHistoryEntry: Identifiable, Codable, Equatable {
         self.album = album
         self.service = service
         self.sourceLabel = sourceLabel
+        self.uri = uri
     }
 }

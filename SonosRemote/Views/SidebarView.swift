@@ -101,5 +101,14 @@ private struct RoomRow: View {
                 }
             }
         }
+        if vm.hasTVInput(device) || vm.hasLineIn(device) {
+            Divider()
+            if vm.hasTVInput(device) {
+                Button("Switch to TV", systemImage: "tv") { vm.switchToTV(device) }
+            }
+            if vm.hasLineIn(device) {
+                Button("Switch to Line-In", systemImage: "cable.connector") { vm.switchToLineIn(device) }
+            }
+        }
     }
 }

@@ -1,5 +1,7 @@
 # Sonos Remote
 
+[![Tests](https://github.com/nigifabio/sonos-remote/actions/workflows/tests.yml/badge.svg)](https://github.com/nigifabio/sonos-remote/actions/workflows/tests.yml)
+
 A native SwiftUI app for controlling your Sonos system — a Mac app (Apple
 Silicon) plus an iOS/iPadOS companion. No cloud, no background server: it
 talks directly to your speakers over local UPnP/SOAP on port 1400, the same
@@ -9,12 +11,18 @@ eventing (GENA) instead of just polling.
 ## Features
 
 - **Auto-discovery** of every room via SSDP + `ZoneGroupTopology`.
-- **Live updates via GENA eventing**: subscribes to each room's AVTransport
-  and RenderingControl events, so play/pause/volume changes — including ones
-  made from the official Sonos app or a physical remote — appear instantly.
-  A 30s poll remains as a safety net for anything a dropped event would
-  otherwise leave stale.
-- **Now playing**: album art, title/artist/album, transport controls, live position.
+- **Live updates via GENA eventing**: play/pause, track, volume, mute,
+  shuffle/repeat and **grouping** changes — including ones made from the
+  official Sonos app or a physical remote — appear within a fraction of a
+  second (grouping measured at about 0.2 s on real speakers). A 30s poll
+  remains as a safety net for anything a dropped event would otherwise
+  leave stale.
+- **Now playing**: album art, title/artist/album, transport controls, a
+  seek bar you can drag, and shuffle/repeat. Shuffle and repeat are disabled
+  for radio, TV and line-in; when the source keeps its own (a Spotify
+  Connect session does), the app says so instead of showing a false "on".
+- **TV and line-in inputs**: a Source menu appears for rooms that have one
+  (a soundbar's TV input, a speaker's line-in).
 - **Favorites, Playlists & local Music Library**: browse everything you've
   already set up in the official Sonos app — including Spotify/Apple Music
   content added as a Favorite or Playlist — and play it with one tap. Sonos
@@ -23,7 +31,8 @@ eventing (GENA) instead of just polling.
   more `ContentDirectory` Browse + `AVTransport` Play calls, so this gives
   one-tap access with no OAuth needed on our side.
 - **Queue management**: view, reorder (drag), remove, and jump to any track
-  in the current play queue.
+  in the current play queue; add anything from the Library browser to the
+  end of the queue without interrupting what's playing.
 - **Local Library ("My Mac", Mac only)**: point Settings ▸ Local Library at
   any folder and its audio files (mp3/m4a/aac/flac/wav/aiff/alac) show up
   under the "My Mac" tab in the Library browser, playable on any room —
@@ -34,23 +43,37 @@ eventing (GENA) instead of just polling.
 - **Alarms & sleep timer**: list/create/enable/delete alarms (ring with the
   built-in Sonos chime), and set a per-room sleep timer.
 - **Bass/treble/loudness (EQ)** controls per physical speaker.
-- **Party Mode**: one click groups every room together (or splits them back apart).
+- **Party Mode**: one click groups every room together (or splits them back
+  apart), household by household — an S1 system next to an S2 one is never
+  joined to it — and the group that is already playing keeps playing.
+- **Routines**: Pause All, Goodnight (sleep timer on everything playing,
+  optionally lowering loud rooms) and Movie Night (the TV room leaves its
+  group and switches to TV; optionally sets its volume and pauses the
+  rest). Tunable in Settings ▸ Routines; Pause All is also a Shortcut.
 - **Per-room pair/unpair**: right-click any room in the sidebar to join it into
   another room's group, or split it back out on its own.
 - **Volume sliders**: one general slider per room/group, plus individual sliders
   for each physical speaker when rooms are grouped.
+- **Failures are shown**: an action a speaker refuses or doesn't answer puts
+  a short plain-language message at the top of the window (or tray) instead
+  of silently doing nothing.
 - **Intercom** (Mac only): hold a push-to-talk button (with a microphone
   picker if you have more than one input device), speak, release — your
   voice plays as an announcement on the room(s) you pick, then whatever was
   playing there resumes automatically. Sonos has no live-mic-streaming API
   for third-party apps, so this uses record → play-announcement → restore,
   the same pattern Sonos' own voice assistants and doorbell integrations use.
+  You can also type a message and have it read out (system voice). Choosing
+  a room that leads a group plays to the whole group once, in sync.
 - **Shortcuts / Siri support**: play/pause a room, skip, set volume, and
   toggle Party Mode are all exposed as `AppIntent`s with Siri phrases — ask
   Siri or build a Shortcuts automation without opening the app.
 - **Menu bar tray** (Mac only): a custom icon in the menu bar opens a compact
-  popover listing every room with its own volume slider, play/pause, and
-  now-playing track, plus a Party Mode switch — without opening the main window.
+  popover: each group with its own volume slider above the rooms in it,
+  play/pause, the now-playing track, Party Mode and the routines — without
+  opening the main window.
+- **Works with other tools on the same Mac** — see "Local control endpoint
+  and history file" below.
 - **Settings**: light/dark/system appearance, start-at-login, live status for
   every permission the app uses (with one-click links to the right System
   Settings pane), and an About section.
@@ -116,12 +139,16 @@ xcodegen generate
 xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemoteTests -destination 'platform=macOS,arch=arm64' test
 ```
 
-129 tests. Covers XML/SOAP/DIDL parsing (including regression tests for two
+210 tests, run on every push by GitHub Actions (`.github/workflows/tests.yml`,
+which also builds the iOS app). Covers XML/SOAP/DIDL parsing (including regression tests for two
 real bugs — see below), zone-topology parsing against realistic fixtures,
 the WAV file builder used by Intercom, GENA event parsing (`LastChange` →
 transport state/volume), `SonosViewModel`'s pure logic, the widget's
 shared-state JSON encoding, the S1/S2 sidebar split and cross-household
-pairing guard, and the local-library path-traversal guard.
+pairing guard, the local-library path-traversal guard, Party Mode per
+household, topology merging, play modes, the history file's format, the
+control endpoint's request parsing and who-may-call rules, announcement
+targeting, and the WAV rebuild used for spoken announcements.
 
 Every `SonosController` function that sends a SOAP action (play/pause,
 volume, mute, EQ, alarms, queue management, grouping) also has direct
@@ -214,6 +241,45 @@ each target room's current track/position/URI is snapshotted → the clip
 plays via `SetAVTransportURI` + `Play` → once it finishes, the room's
 previous state is restored.
 
+## Local control endpoint and history file
+
+Two small things let other programs on the same Mac build on the running
+app. Both exist for the [Sonos MCP server](https://github.com/nigifabio/sonos-mcp-server)
+(`announce` and `get_play_history`), but nothing about them is specific to it.
+
+**History file.** Sonos keeps no play history, so the app records what it
+sees playing (last 200 tracks) and mirrors it to
+`~/Library/Application Support/SonosRemote/history.json`:
+
+```json
+{ "version": 1, "updated": "2026-10-12T16:00:00Z",
+  "entries": [ { "played_at": "2026-10-12T15:59:44Z", "room": "Office",
+                 "title": "…", "artist": "…", "album": "…", "service": "Spotify",
+                 "source": "Favorite or playlist name, when known",
+                 "uri": "x-sonos-spotify:…" } ] }
+```
+
+Newest first. Only what played while the app was running is in it.
+
+**Control endpoint** on port 57123, the same listener that serves audio to
+the speakers:
+
+| Request | Body | Result |
+|---|---|---|
+| `GET /api/status` | — | `{"ok": true, "version": "1.3", "rooms": ["Office", …]}` |
+| `POST /api/announce` | `{"text": "…", "rooms": ["Office"], "volume": 20, "voice": "Alice"}` (only `text` is required) | Speaks the text, restores what was playing, returns the rooms that heard it |
+
+```bash
+curl -s http://127.0.0.1:57123/api/announce -H 'Content-Type: application/json' \
+     -d '{"text": "Dinner is ready", "rooms": ["Kitchen"]}'
+```
+
+`/api/...` is only answered for connections from this Mac. Because a web
+page open in a browser is also "this Mac", requests a browser could send
+cross-site are refused too: anything with an `Origin` header, and any POST
+not declared as JSON. The audio and library paths stay reachable from the
+LAN, since the speakers have to fetch them.
+
 ## Notable bugs fixed along the way
 
 - **`upnp:album` matching inside `upnp:albumArtURI`**: the tag-extraction
@@ -300,24 +366,27 @@ versions could differ.
 
 ## Known limitations
 
-- Party Mode always groups under the first-listed room's coordinator.
+- An announcement to a room that leads a group is heard by the whole group
+  (whatever a coordinator plays, its group plays). Only a room that follows
+  can be singled out.
+- Shuffle/repeat can't be changed for sources that keep their own, such as
+  a Spotify Connect session; change those in the app the music comes from.
 - The app is ad-hoc signed ("Sign to Run Locally") — fine for building and
   running on your own devices, but Gatekeeper will warn on a Mac that didn't
   build it (right-click ▸ Open bypasses this once), and the iOS app can only
   run on devices you've registered for local development.
-- GENA subscriptions cover each coordinator's AVTransport and
-  GroupRenderingControl plus every room's RenderingControl; topology changes
-  (a room joining/leaving a group) are still picked up by the 30s poll, not
-  pushed instantly.
+- A speaker that is switched off is noticed missing at the next 30s poll;
+  one that is switched on is found at the next rescan (every 5 minutes, or
+  the Refresh button).
 
 ## Suggested next features
 
 - **Intercom on iOS**: needs an iOS-appropriate input picker (iOS doesn't
   have Core Audio's HAL device model — it's `AVAudioSession` route picking
   instead), so this is a real platform difference, not just missing UI.
-- **GENA for `ZoneGroupTopology`**: subscribing to topology change events
-  would make room grouping/ungrouping (including from the official app)
-  reflect instantly instead of waiting for the 30s poll.
+- **Announcements that don't interrupt**: Sonos S2 has an audio-clip API
+  that plays a clip over the music in a single room, even inside a group.
+  It would lift the "coordinator means whole group" limitation above.
 - **Drag-and-drop room grouping UI**, as an alternative to the context menu.
 - **watchOS complication / CarPlay** for the most common controls.
 - **Notarized, signed distribution** (currently ad-hoc only) — needs a paid

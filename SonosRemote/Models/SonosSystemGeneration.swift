@@ -13,10 +13,14 @@ enum SonosSystemGeneration: String, Codable {
 
 /// The identifying fields from a device's `/xml/device_description.xml` —
 /// standard UPnP device description, unrelated to the S1/S2 split itself.
-struct SonosDeviceDescription {
+struct SonosDeviceDescription: Equatable {
     var modelName: String = ""
     var modelNumber: String = ""
     var displayVersion: String = ""
+    /// The speaker exposes an analog/digital line-in (`AudioIn` service).
+    var hasLineIn = false
+    /// The speaker is a home-theater product with a TV input (`HTControl`).
+    var hasTVInput = false
 }
 
 enum SonosGenerationDetector {

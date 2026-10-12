@@ -7,6 +7,8 @@ struct IntercomView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedDeviceIDs: Set<String> = []
     @State private var micGranted = true
+    @State private var typedMessage = ""
+    @State private var isSpeaking = false
 
     private var targets: [SonosDevice] {
         vm.allDevices.filter { selectedDeviceIDs.contains($0.uuid) }
@@ -16,7 +18,7 @@ struct IntercomView: View {
         VStack(spacing: 20) {
             Text("Intercom")
                 .font(.title2.bold())
-            Text("Hold the button, speak, then release to announce it in the selected room(s).")
+            Text("Hold the button and speak, or type a message to have it read out, in the selected rooms.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -24,8 +26,9 @@ struct IntercomView: View {
             micPicker
             roomPicker
             pushToTalkButton
+            typedMessageRow
 
-            if intercom.isBroadcasting {
+            if intercom.isBroadcasting || isSpeaking {
                 ProgressView("Playing announcement…")
             }
             if !micGranted {
@@ -105,6 +108,33 @@ struct IntercomView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private var typedMessageRow: some View {
+        HStack {
+            TextField("Type a message to read out", text: $typedMessage)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(speakTypedMessage)
+            Button("Speak", action: speakTypedMessage)
+                .disabled(typedMessage.trimmingCharacters(in: .whitespaces).isEmpty || targets.isEmpty || isSpeaking || intercom.isBroadcasting)
+        }
+    }
+
+    private func speakTypedMessage() {
+        let message = typedMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !message.isEmpty, !targets.isEmpty, !isSpeaking else { return }
+        let rooms = targets
+        isSpeaking = true
+        intercom.lastError = nil
+        Task {
+            do {
+                _ = try await vm.announce(message, in: rooms)
+                typedMessage = ""
+            } catch {
+                intercom.lastError = SonosViewModel.describe(error)
+            }
+            isSpeaking = false
+        }
+    }
+
     private var pushToTalkButton: some View {
         Circle()
             .fill(intercom.isRecording ? Color.red : Color.accentColor)
@@ -122,7 +152,7 @@ struct IntercomView: View {
                 if pressing {
                     if !intercom.isRecording { intercom.startRecording() }
                 } else if intercom.isRecording {
-                    intercom.stopAndBroadcast(to: targets)
+                    intercom.stopAndBroadcast(to: targets, groups: vm.groups)
                 }
             }, perform: {})
             .help(targets.isEmpty ? "Select at least one room" : "Hold to talk")

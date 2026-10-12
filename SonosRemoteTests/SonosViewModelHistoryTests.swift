@@ -91,17 +91,29 @@ final class SonosViewModelHistoryTests: XCTestCase {
         XCTAssertEqual(vm.lastSpotifyTrack?.title, "Random Spotify Track")
     }
 
-    func testHistoryIsCappedAtFiftyEntries() {
+    /// Intercom and spoken announcements are served by this app; they are
+    /// not music and must not show up as "recently played".
+    func testAnnouncementClipsAreNotRecorded() {
+        let vm = makeViewModel()
+        var clip = TrackInfo()
+        clip.title = "intercom.wav"
+        clip.sourceURI = "http://10.0.0.213:57123/intercom.wav"
+        vm.recordHistoryIfChanged(group: makeGroup(), track: clip)
+        XCTAssertTrue(vm.playbackHistory.isEmpty)
+    }
+
+    func testHistoryIsCappedAtItsLimit() {
         let vm = makeViewModel()
         let group = makeGroup()
-        for i in 0..<60 {
+        let total = SonosViewModel.historyLimit + 10
+        for i in 0..<total {
             var track = TrackInfo()
             track.title = "Song \(i)"
             track.artist = "Artist"
             vm.recordHistoryIfChanged(group: group, track: track)
         }
-        XCTAssertEqual(vm.playbackHistory.count, 50)
-        XCTAssertEqual(vm.lastPlayed?.title, "Song 59")
+        XCTAssertEqual(vm.playbackHistory.count, SonosViewModel.historyLimit)
+        XCTAssertEqual(vm.lastPlayed?.title, "Song \(total - 1)")
     }
 
     func testPersistsAndReloadsAcrossInstances() {

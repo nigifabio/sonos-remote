@@ -44,5 +44,14 @@ struct SonosShortcutsProvider: AppShortcutsProvider {
             shortTitle: "Party Mode",
             systemImageName: "party.popper.fill"
         )
+        AppShortcut(
+            intent: PauseAllShortcutIntent(),
+            phrases: [
+                "Pause everything with \(.applicationName)",
+                "Pause all rooms with \(.applicationName)"
+            ],
+            shortTitle: "Pause All",
+            systemImageName: "pause.circle.fill"
+        )
     }
 }

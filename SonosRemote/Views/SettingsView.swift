@@ -6,6 +6,10 @@ import AppKit
 struct SettingsView: View {
     @AppStorage("appTheme") private var themeRaw: String = AppTheme.system.rawValue
     @AppStorage(LocalLibraryService.defaultsKey) private var localLibraryPath: String = ""
+    @AppStorage(RoutineSettings.goodnightMinutesKey) private var goodnightMinutes = 30
+    @AppStorage(RoutineSettings.goodnightMaxVolumeKey) private var goodnightMaxVolume = 0
+    @AppStorage(RoutineSettings.movieNightVolumeKey) private var movieNightVolume = 0
+    @AppStorage(RoutineSettings.movieNightPauseOthersKey) private var movieNightPauseOthers = true
     @State private var launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
     @State private var launchAtLoginError: String?
     @State private var micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
@@ -77,6 +81,25 @@ struct SettingsView: View {
                 .padding(.vertical, 2)
             }
 
+            Section("Routines") {
+                Stepper("Goodnight: stop the music after \(goodnightMinutes) min", value: $goodnightMinutes, in: 5...120, step: 5)
+                Toggle("Goodnight: lower loud rooms", isOn: Binding(
+                    get: { goodnightMaxVolume > 0 },
+                    set: { goodnightMaxVolume = $0 ? 20 : 0 }
+                ))
+                if goodnightMaxVolume > 0 {
+                    Stepper("…to at most \(goodnightMaxVolume)", value: $goodnightMaxVolume, in: 5...60, step: 5)
+                }
+                Toggle("Movie Night: set the TV room's volume", isOn: Binding(
+                    get: { movieNightVolume > 0 },
+                    set: { movieNightVolume = $0 ? 30 : 0 }
+                ))
+                if movieNightVolume > 0 {
+                    Stepper("…to \(movieNightVolume)", value: $movieNightVolume, in: 5...80, step: 5)
+                }
+                Toggle("Movie Night: pause the other rooms", isOn: $movieNightPauseOthers)
+            }
+
             Section("Startup") {
                 Toggle("Start Sonos Remote at login", isOn: Binding(
                     get: { launchAtLoginEnabled },
@@ -98,7 +121,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Sonos Remote")
                                 .font(.headline)
-                            Text("Version 1.0")
+                            Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -115,7 +138,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420, height: 560)
+        .frame(width: 440, height: 640)
         .onAppear {
             launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
             micStatus = AVCaptureDevice.authorizationStatus(for: .audio)

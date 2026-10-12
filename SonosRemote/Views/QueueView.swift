@@ -3,6 +3,7 @@ import SwiftUI
 /// View/reorder/remove tracks in the group's current play queue.
 struct QueueView: View {
     let group: SonosGroup
+    @EnvironmentObject var vm: SonosViewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var items: [BrowseItem] = []
@@ -59,20 +60,22 @@ struct QueueView: View {
             }
         }
         .frame(width: 420, height: 560)
+        .bannerOverlay(vm)
         .task { await load() }
     }
 
     private func load() async {
         guard let device = group.coordinator else { return }
         isLoading = true
-        items = (try? await SonosController.getQueue(device)) ?? []
+        await vm.attempt("Couldn't read the queue") { items = try await SonosController.getQueue(device) }
         isLoading = false
     }
 
     private func play(trackNumber: Int) async {
         guard let device = group.coordinator else { return }
-        try? await SonosController.playFromQueue(device, trackNumber: trackNumber)
-        dismiss()
+        if await vm.attempt("Couldn't play that track", { try await SonosController.playFromQueue(device, trackNumber: trackNumber) }) {
+            dismiss()
+        }
     }
 
     private func move(from source: IndexSet, to destination: Int) {
@@ -80,27 +83,39 @@ struct QueueView: View {
         let fromTrackNumber = from + 1
         let toTrackNumber = destination + 1
         items.move(fromOffsets: source, toOffset: destination)
-        Task { try? await SonosController.reorderQueue(device, fromTrackNumber: fromTrackNumber, toTrackNumber: toTrackNumber) }
+        Task {
+            let moved = await vm.attempt("Couldn't move that track") {
+                try await SonosController.reorderQueue(device, fromTrackNumber: fromTrackNumber, toTrackNumber: toTrackNumber)
+            }
+            if !moved { await load() }
+        }
     }
 
     private func remove(at index: Int) async {
         guard let device = group.coordinator else { return }
         items.remove(at: index)
-        try? await SonosController.removeFromQueue(device, trackNumber: index + 1)
+        let removed = await vm.attempt("Couldn't remove that track") {
+            try await SonosController.removeFromQueue(device, trackNumber: index + 1)
+        }
+        if !removed { await load() }
     }
 
     private func removeAll(at offsets: IndexSet) async {
         guard let device = group.coordinator else { return }
         let trackNumbers = offsets.map { $0 + 1 }.sorted(by: >)
         items.remove(atOffsets: offsets)
-        for trackNumber in trackNumbers {
-            try? await SonosController.removeFromQueue(device, trackNumber: trackNumber)
+        let removed = await vm.attempt("Couldn't remove those tracks") {
+            for trackNumber in trackNumbers {
+                try await SonosController.removeFromQueue(device, trackNumber: trackNumber)
+            }
         }
+        if !removed { await load() }
     }
 
     private func clearAll() async {
         guard let device = group.coordinator else { return }
-        try? await SonosController.clearQueue(device)
-        items = []
+        if await vm.attempt("Couldn't clear the queue", { try await SonosController.clearQueue(device) }) {
+            items = []
+        }
     }
 }

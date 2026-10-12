@@ -31,6 +31,8 @@ enum SonosService: String {
 
 struct SOAPError: Error, LocalizedError {
     let message: String
+    /// The UPnP error code from the speaker's fault response, when it sent one.
+    var code: Int? = nil
     var errorDescription: String? { message }
 }
 
@@ -75,7 +77,8 @@ enum SOAPClient {
             let faultString = XMLHelpers.value(ofTag: "errorDescription", in: text)
                 ?? XMLHelpers.value(ofTag: "faultstring", in: text)
                 ?? "HTTP \(http.statusCode)"
-            throw SOAPError(message: "\(action) failed on \(host): \(faultString)")
+            let code = XMLHelpers.value(ofTag: "errorCode", in: text).flatMap { Int($0) }
+            throw SOAPError(message: "\(action) failed on \(host): \(faultString)", code: code)
         }
 
         return text

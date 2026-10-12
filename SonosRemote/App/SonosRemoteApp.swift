@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct SonosRemoteApp: App {
-    @StateObject private var viewModel = SonosViewModel()
+    @StateObject private var viewModel = SonosViewModel(historyFileURL: PlaybackHistoryFile.defaultURL)
     @AppStorage("appTheme") private var themeRaw: String = AppTheme.system.rawValue
 
     private var colorScheme: ColorScheme? {
@@ -17,6 +17,7 @@ struct SonosRemoteApp: App {
                 .preferredColorScheme(colorScheme)
                 .onAppear {
                     viewModel.start()
+                    ControlAPI.install(for: viewModel)
                     if let path = UserDefaults.standard.string(forKey: LocalLibraryService.defaultsKey), !path.isEmpty {
                         LocalHTTPServer.shared.setLibraryRoot(URL(fileURLWithPath: path, isDirectory: true))
                     }

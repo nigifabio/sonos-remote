@@ -76,12 +76,13 @@ struct LibraryView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(items) { item in
-                    LibraryRow(item: item, onTap: { await handleTap(item) }, onPlay: { await play(item) })
+                    LibraryRow(item: item, onTap: { await handleTap(item) }, onPlay: { await play(item) }, onQueue: { queue(item) })
                 }
                 .listStyle(.plain)
             }
         }
         .frame(width: 460, height: 560)
+        .bannerOverlay(vm)
         .task { await load() }
     }
 
@@ -130,6 +131,18 @@ struct LibraryView: View {
         dismiss()
     }
 
+    /// Adds to the end of the queue, leaving what's playing alone (and the
+    /// browser open, so several things can be queued in a row).
+    private func queue(_ item: BrowseItem) {
+        #if os(macOS)
+        if root == .myMac, item.isContainer, let rootURL = myMacRootURL {
+            vm.addToQueue(LocalLibraryService.files(root: rootURL, relativePath: item.id), in: group)
+            return
+        }
+        #endif
+        vm.addToQueue([item], in: group)
+    }
+
     #if os(macOS)
     private var myMacRootURL: URL? {
         let path = UserDefaults.standard.string(forKey: LocalLibraryService.defaultsKey) ?? ""
@@ -153,6 +166,7 @@ private struct LibraryRow: View {
     let item: BrowseItem
     let onTap: () async -> Void
     let onPlay: () async -> Void
+    let onQueue: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -167,6 +181,13 @@ private struct LibraryRow: View {
             if item.isContainer {
                 Image(systemName: "chevron.right").foregroundStyle(.tertiary)
             }
+            Button(action: onQueue) {
+                Image(systemName: "text.badge.plus")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Add to the end of the queue")
+            .accessibilityLabel("Add \(item.title) to queue")
             Button {
                 Task { await onPlay() }
             } label: {
@@ -174,6 +195,7 @@ private struct LibraryRow: View {
             }
             .buttonStyle(.plain)
             .help(item.isContainer ? "Play all" : "Play")
+            .accessibilityLabel("Play \(item.title)")
         }
         .contentShape(Rectangle())
         .onTapGesture { Task { await onTap() } }

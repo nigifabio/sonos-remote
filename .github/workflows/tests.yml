@@ -1,0 +1,98 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit tests and builds
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: xcodebuild -version
+
+      - name: Generate the Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Unit tests (macOS)
+        run: |
+          set -o pipefail
+          xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemote \
+            -destination 'platform=macOS' test | tee test.log | grep -E "error:|warning: unre|Test Suite '.*' (passed|failed)|Executed [0-9]+ tests|\*\* TEST"
+
+      - name: Build the iOS app
+        run: |
+          set -o pipefail
+          xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemoteiOS \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tee ios-build.log | grep -E "error:|\*\* BUILD"
+
+      - name: Keep the full logs when something fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-logs
+          path: "*.log"
+
+  package:
+    name: Installer package
+    # Only for version tags: builds the .pkg and attaches it to the release.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: macos-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate the Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build the app (Release)
+        run: |
+          set -o pipefail
+          xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemote -configuration Release \
+            -derivedDataPath build clean build | tee release-build.log | grep -E "error:|\*\* BUILD"
+
+      - name: Build the installer
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APP=build/Build/Products/Release/SonosRemote.app
+          BUILT=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")
+          if [ "$BUILT" != "$VERSION" ]; then
+            echo "Tag says $VERSION but the app was built as $BUILT (MARKETING_VERSION in project.yml)"; exit 1
+          fi
+          mkdir -p pkgroot/Applications
+          cp -R "$APP" pkgroot/Applications/
+          # Not relocatable: always install to /Applications rather than over
+          # whatever other copy of the app the installer finds on the disk.
+          pkgbuild --analyze --root pkgroot components.plist
+          /usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" components.plist
+          pkgbuild --root pkgroot --component-plist components.plist --install-location / \
+            --identifier com.fabionigi.SonosRemote.installer --version "$VERSION" "SonosRemote-$VERSION.pkg"
+          echo "PKG=SonosRemote-$VERSION.pkg" >> "$GITHUB_ENV"
+
+      - name: Attach to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$PKG" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$PKG" --title "Sonos Remote ${GITHUB_REF_NAME#v}" --generate-notes
+          fi

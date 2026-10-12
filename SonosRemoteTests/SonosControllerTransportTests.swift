@@ -46,8 +46,8 @@ final class SonosControllerTransportTests: XCTestCase {
         let meta = """
         &lt;DIDL-Lite&gt;&lt;item&gt;&lt;dc:title&gt;Juice Newton&amp;apos;s Greatest Hits&lt;/dc:title&gt;&lt;dc:creator&gt;Juice Newton&lt;/dc:creator&gt;&lt;upnp:album&gt;Greatest Hits&lt;/upnp:album&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;
         """
-        fake.responses = [
-            (200, FakeSOAPTransport.envelope("""
+        fake.responsesByAction = [
+            "GetPositionInfo": (200, FakeSOAPTransport.envelope("""
             <u:GetPositionInfoResponse>
               <TrackDuration>0:03:30</TrackDuration>
               <RelTime>0:01:00</RelTime>
@@ -55,7 +55,7 @@ final class SonosControllerTransportTests: XCTestCase {
               <TrackMetaData>\(meta)</TrackMetaData>
             </u:GetPositionInfoResponse>
             """)),
-            (200, FakeSOAPTransport.envelope("<u:GetTransportInfoResponse><CurrentTransportState>PLAYING</CurrentTransportState></u:GetTransportInfoResponse>"))
+            "GetTransportInfo": (200, FakeSOAPTransport.envelope("<u:GetTransportInfoResponse><CurrentTransportState>PLAYING</CurrentTransportState></u:GetTransportInfoResponse>"))
         ]
 
         let info = try await SonosController.trackInfo(device, transport: fake)
@@ -69,9 +69,9 @@ final class SonosControllerTransportTests: XCTestCase {
 
     func testTrackInfoDetectsStreamWhenPlayingWithZeroDuration() async throws {
         let fake = FakeSOAPTransport()
-        fake.responses = [
-            (200, FakeSOAPTransport.envelope("<u:GetPositionInfoResponse><TrackDuration>0:00:00</TrackDuration><RelTime>0:00:00</RelTime></u:GetPositionInfoResponse>")),
-            (200, FakeSOAPTransport.envelope("<u:GetTransportInfoResponse><CurrentTransportState>PLAYING</CurrentTransportState></u:GetTransportInfoResponse>"))
+        fake.responsesByAction = [
+            "GetPositionInfo": (200, FakeSOAPTransport.envelope("<u:GetPositionInfoResponse><TrackDuration>0:00:00</TrackDuration><RelTime>0:00:00</RelTime></u:GetPositionInfoResponse>")),
+            "GetTransportInfo": (200, FakeSOAPTransport.envelope("<u:GetTransportInfoResponse><CurrentTransportState>PLAYING</CurrentTransportState></u:GetTransportInfoResponse>"))
         ]
         let info = try await SonosController.trackInfo(device, transport: fake)
         XCTAssertTrue(info.isStream)

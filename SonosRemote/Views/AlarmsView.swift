@@ -35,6 +35,7 @@ struct AlarmsView: View {
             }
         }
         .frame(width: 420, height: 560)
+        .bannerOverlay(vm)
         .task { await load() }
     }
 
@@ -115,20 +116,30 @@ struct AlarmsView: View {
     private func load() async {
         guard let device = bootstrapDevice else { return }
         isLoading = true
-        alarms = (try? await SonosController.listAlarms(device)) ?? []
+        await vm.attempt("Couldn't read the alarms") { alarms = try await SonosController.listAlarms(device) }
         isLoading = false
     }
 
     private func toggle(_ alarm: SonosAlarm, enabled: Bool) {
         guard let device = vm.allDevices.first(where: { $0.uuid == alarm.roomUUID }) ?? bootstrapDevice else { return }
         if let index = alarms.firstIndex(where: { $0.id == alarm.id }) { alarms[index].enabled = enabled }
-        Task { try? await SonosController.setAlarmEnabled(alarm, enabled: enabled, on: device) }
+        Task {
+            let changed = await vm.attempt("Couldn't change that alarm") {
+                try await SonosController.setAlarmEnabled(alarm, enabled: enabled, on: device)
+            }
+            if !changed { await load() }
+        }
     }
 
     private func delete(_ alarm: SonosAlarm) {
         guard let device = bootstrapDevice else { return }
         alarms.removeAll { $0.id == alarm.id }
-        Task { try? await SonosController.deleteAlarm(alarm, on: device) }
+        Task {
+            let deleted = await vm.attempt("Couldn't delete that alarm") {
+                try await SonosController.deleteAlarm(alarm, on: device)
+            }
+            if !deleted { await load() }
+        }
     }
 
     private func addAlarm() async {
@@ -136,13 +147,20 @@ struct AlarmsView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
         let timeString = formatter.string(from: newAlarmTime)
-        try? await SonosController.createAlarm(device: device, startTime: timeString)
+        await vm.attempt("Couldn't add the alarm") {
+            try await SonosController.createAlarm(device: device, startTime: timeString)
+        }
         await load()
     }
 
     private func setSleepTimer() async {
         guard let device = sleepTimerDevice else { return }
+        // A grouped room takes its sleep timer from the group's coordinator.
+        let target = vm.group(containing: device)?.coordinator ?? device
         let seconds = Int(sleepTimerMinutes) * 60
-        try? await SonosController.setSleepTimer(device, seconds: seconds > 0 ? seconds : nil)
+        let set = await vm.attempt("Couldn't set the sleep timer") {
+            try await SonosController.setSleepTimer(target, seconds: seconds > 0 ? seconds : nil)
+        }
+        if set { vm.showNotice(seconds > 0 ? "Sleep timer: \(Int(sleepTimerMinutes)) min" : "Sleep timer off") }
     }
 }

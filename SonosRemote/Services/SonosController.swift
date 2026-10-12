@@ -27,12 +27,24 @@ enum SonosController {
     /// a repeat household by the fact its member UUIDs are already known
     /// (so a 5-speaker household still costs one real topology fetch, not
     /// five — the other four are skipped once their members are seen).
-    static func discoverGroups() async -> [SonosGroup] {
-        let hosts = await SSDPDiscovery.discoverHosts()
+    ///
+    /// `alsoAsking` are speakers already known: they are asked even if
+    /// their SSDP reply got lost this time, so one dropped UDP packet can't
+    /// make a whole (single-speaker) household vanish.
+    static func discoverGroups(alsoAsking knownHosts: [String] = []) async -> [SonosGroup] {
+        let found = await SSDPDiscovery.discoverHosts()
+        return await mergedTopology(fromHosts: found + knownHosts.filter { !found.contains($0) })
+    }
+
+    /// Asks each host for its household's topology and merges the distinct
+    /// households. Also the cheap way to re-read topology when the speakers'
+    /// addresses are already known: pass one host per household and no SSDP
+    /// scan is needed.
+    static func mergedTopology(fromHosts hosts: [String], transport: SOAPTransport = URLSession.shared) async -> [SonosGroup] {
         var allGroups: [SonosGroup] = []
         var seenMemberUUIDs = Set<String>()
         for host in hosts {
-            guard let groups = try? await fetchTopology(bootstrapHost: host), !groups.isEmpty else { continue }
+            guard let groups = try? await fetchTopology(bootstrapHost: host, transport: transport), !groups.isEmpty else { continue }
             let memberUUIDs = Set(groups.flatMap { $0.members.map(\.uuid) })
             guard !memberUUIDs.isSubset(of: seenMemberUUIDs) else { continue }
             seenMemberUUIDs.formUnion(memberUUIDs)
@@ -49,26 +61,33 @@ enum SonosController {
         guard let url = URL(string: "http://\(device.host):1400/xml/device_description.xml") else { return nil }
         guard let (data, _) = try? await URLSession.shared.data(from: url),
               let xml = String(data: data, encoding: .utf8) else { return nil }
+        return parseDeviceDescription(xml)
+    }
+
+    /// Models that expose the `AudioIn` service without having a line-in
+    /// jack: the first-generation Move (S17) uses it for Bluetooth only.
+    private static let audioInWithoutLineIn: Set<String> = ["S17"]
+
+    static func parseDeviceDescription(_ xml: String) -> SonosDeviceDescription {
+        let modelNumber = XMLHelpers.value(ofTag: "modelNumber", in: xml) ?? ""
         return SonosDeviceDescription(
             modelName: XMLHelpers.value(ofTag: "modelName", in: xml) ?? "",
-            modelNumber: XMLHelpers.value(ofTag: "modelNumber", in: xml) ?? "",
-            displayVersion: XMLHelpers.value(ofTag: "displayVersion", in: xml) ?? ""
+            modelNumber: modelNumber,
+            displayVersion: XMLHelpers.value(ofTag: "displayVersion", in: xml) ?? "",
+            hasLineIn: xml.contains(":service:AudioIn:") && !audioInWithoutLineIn.contains(modelNumber),
+            hasTVInput: xml.contains(":service:HTControl:")
         )
     }
 
-    /// Classifies every device concurrently — used once per full topology
-    /// refresh (not on every quick poll) since it's one extra HTTP GET per
-    /// physical speaker.
-    static func detectGenerations(for devices: [SonosDevice]) async -> [String: SonosSystemGeneration] {
-        await withTaskGroup(of: (String, SonosSystemGeneration).self) { taskGroup in
+    /// Fetches every device's description concurrently — once per full
+    /// topology refresh, since it's one extra HTTP GET per speaker.
+    static func describe(_ devices: [SonosDevice]) async -> [String: SonosDeviceDescription] {
+        await withTaskGroup(of: (String, SonosDeviceDescription?).self) { taskGroup in
             for device in devices {
-                taskGroup.addTask {
-                    guard let description = await fetchDeviceDescription(device) else { return (device.uuid, .unknown) }
-                    return (device.uuid, SonosGenerationDetector.detect(from: description))
-                }
+                taskGroup.addTask { (device.uuid, await fetchDeviceDescription(device)) }
             }
-            var result: [String: SonosSystemGeneration] = [:]
-            for await (uuid, generation) in taskGroup { result[uuid] = generation }
+            var result: [String: SonosDeviceDescription] = [:]
+            for await (uuid, description) in taskGroup { result[uuid] = description }
             return result
         }
     }
@@ -83,7 +102,19 @@ enum SonosController {
         )
         guard let stateXML = XMLHelpers.value(ofTag: "ZoneGroupState", in: xml) else { return [] }
         let unescaped = XMLHelpers.unescapeXML(stateXML)
-        return parseZoneGroups(from: unescaped)
+        return taggedWithHousehold(parseZoneGroups(from: unescaped))
+    }
+
+    /// Stamps one household's groups with a shared `householdID`. A topology
+    /// answer always describes exactly one whole household, so its lowest
+    /// room UUID identifies it the same way whichever speaker answered.
+    static func taggedWithHousehold(_ groups: [SonosGroup]) -> [SonosGroup] {
+        guard let key = groups.flatMap(\.members).map(\.uuid).min() else { return groups }
+        return groups.map { group in
+            var tagged = group
+            tagged.householdID = key
+            return tagged
+        }
     }
 
     static func parseZoneGroups(from xml: String) -> [SonosGroup] {
@@ -177,6 +208,44 @@ enum SonosController {
             info.isStream = state == TransportState.playing.rawValue && info.durationSeconds == 0
         }
         return info
+    }
+
+    /// Jumps to `seconds` into the current track.
+    static func seek(_ device: SonosDevice, toSeconds seconds: Int, transport: SOAPTransport = URLSession.shared) async throws {
+        let clamped = max(0, seconds)
+        let target = String(format: "%d:%02d:%02d", clamped / 3600, (clamped % 3600) / 60, clamped % 60)
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "Seek",
+                                       arguments: [("InstanceID", "0"), ("Unit", "REL_TIME"), ("Target", target)],
+                                       transport: transport)
+    }
+
+    static func playMode(_ device: SonosDevice, transport: SOAPTransport = URLSession.shared) async throws -> PlayMode {
+        let xml = try await SOAPClient.call(host: device.host, service: .avTransport, action: "GetTransportSettings", transport: transport)
+        return PlayMode(sonosValue: XMLHelpers.value(ofTag: "PlayMode", in: xml) ?? "")
+    }
+
+    static func setPlayMode(_ device: SonosDevice, to mode: PlayMode, transport: SOAPTransport = URLSession.shared) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "SetPlayMode",
+                                       arguments: [("InstanceID", "0"), ("NewPlayMode", mode.sonosValue)], transport: transport)
+    }
+
+    // MARK: - Inputs (TV / line-in)
+
+    /// Plays the TV input of a home-theater speaker (Beam, Arc, Ray, …).
+    static func switchToTV(_ device: SonosDevice, transport: SOAPTransport = URLSession.shared) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "SetAVTransportURI",
+                                       arguments: [("InstanceID", "0"),
+                                                   ("CurrentURI", "x-sonos-htastream:\(device.uuid):spdif"),
+                                                   ("CurrentURIMetaData", "")], transport: transport)
+    }
+
+    /// Plays `source`'s line-in on `device` (its own line-in by default).
+    static func switchToLineIn(_ device: SonosDevice, from source: SonosDevice? = nil, transport: SOAPTransport = URLSession.shared) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "SetAVTransportURI",
+                                       arguments: [("InstanceID", "0"),
+                                                   ("CurrentURI", "x-rincon-stream:\((source ?? device).uuid)"),
+                                                   ("CurrentURIMetaData", "")], transport: transport)
+        try await play(device, transport: transport)
     }
 
     private static func absoluteURL(_ path: String, relativeToHost host: String) -> URL? {
@@ -421,6 +490,18 @@ enum SonosController {
                                        arguments: [("InstanceID", "0"), ("CurrentURI", "x-rincon-queue:\(device.uuid)#0"),
                                                    ("CurrentURIMetaData", "")], transport: transport)
         try await play(device, transport: transport)
+    }
+
+    /// Adds `item` to the queue without touching what's playing — at the
+    /// end, or right after the current track with `playNext`.
+    static func addToQueue(_ item: BrowseItem, on device: SonosDevice, playNext: Bool = false,
+                           transport: SOAPTransport = URLSession.shared) async throws {
+        _ = try await SOAPClient.call(host: device.host, service: .avTransport, action: "AddURIToQueue",
+                                       arguments: [("InstanceID", "0"), ("EnqueuedURI", item.uri),
+                                                   ("EnqueuedURIMetaData", item.metadata),
+                                                   ("DesiredFirstTrackNumberEnqueued", "0"),
+                                                   ("EnqueueAsNext", playNext ? "1" : "0")],
+                                       transport: transport)
     }
 
     // MARK: - Queue management

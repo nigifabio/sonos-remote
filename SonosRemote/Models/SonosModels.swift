@@ -16,10 +16,14 @@ struct SonosGroup: Identifiable, Hashable {
     let id: String              // group ID from topology
     let coordinatorUUID: String
     var members: [SonosDevice]  // includes the coordinator
+    /// Which Sonos household (system) this group belongs to. Rooms can only
+    /// ever be grouped within one household; an S1 system and an S2 system
+    /// on the same network are two households. Empty when unknown.
+    var householdID: String = ""
 
     var coordinator: SonosDevice? { members.first { $0.uuid == coordinatorUUID } }
     var name: String {
-        members.map(\.name).sorted().joined(separator: " + ")
+        members.map(\.name).sorted { $0.localizedStandardCompare($1) == .orderedAscending }.joined(separator: " + ")
     }
 }
 
@@ -60,6 +64,54 @@ enum MusicService: String, Codable {
         if lower.contains("applemusic") || lower.contains("apple-music") { return .appleMusic }
         if uri.isEmpty { return .unknown }
         return .local
+    }
+}
+
+/// Shuffle/repeat state of a group's queue. Sonos encodes both in a single
+/// `PlayMode` string.
+struct PlayMode: Equatable {
+    enum Repeat: Equatable { case off, all, one }
+
+    var shuffle = false
+    var repeatMode: Repeat = .off
+
+    init(shuffle: Bool = false, repeatMode: Repeat = .off) {
+        self.shuffle = shuffle
+        self.repeatMode = repeatMode
+    }
+
+    /// Unrecognised values read as "no shuffle, no repeat".
+    init(sonosValue: String) {
+        switch sonosValue {
+        case "REPEAT_ALL": self.init(repeatMode: .all)
+        case "REPEAT_ONE": self.init(repeatMode: .one)
+        case "SHUFFLE_NOREPEAT": self.init(shuffle: true)
+        case "SHUFFLE": self.init(shuffle: true, repeatMode: .all)
+        case "SHUFFLE_REPEAT_ONE": self.init(shuffle: true, repeatMode: .one)
+        default: self.init()
+        }
+    }
+
+    var sonosValue: String {
+        switch (shuffle, repeatMode) {
+        case (false, .off): return "NORMAL"
+        case (false, .all): return "REPEAT_ALL"
+        case (false, .one): return "REPEAT_ONE"
+        case (true, .off): return "SHUFFLE_NOREPEAT"
+        case (true, .all): return "SHUFFLE"
+        case (true, .one): return "SHUFFLE_REPEAT_ONE"
+        }
+    }
+
+    /// Off → all → one → off, the order Sonos' own apps cycle through.
+    var nextRepeat: PlayMode {
+        var copy = self
+        switch repeatMode {
+        case .off: copy.repeatMode = .all
+        case .all: copy.repeatMode = .one
+        case .one: copy.repeatMode = .off
+        }
+        return copy
     }
 }
 

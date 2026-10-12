@@ -3,6 +3,7 @@ import SwiftUI
 /// Bass/treble/loudness controls for one physical speaker, via RenderingControl.
 struct EQView: View {
     let device: SonosDevice
+    @EnvironmentObject var vm: SonosViewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var bass: Double = 0
@@ -20,20 +21,25 @@ struct EQView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Bass: \(Int(bass))").font(.caption)
                     Slider(value: $bass, in: -10...10, step: 1) { editing in
-                        if !editing { Task { try? await SonosController.setBass(device, to: Int(bass)) } }
+                        if !editing { Task { await vm.attempt("Couldn't set bass") { try await SonosController.setBass(device, to: Int(bass)) } } }
                     }
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Treble: \(Int(treble))").font(.caption)
                     Slider(value: $treble, in: -10...10, step: 1) { editing in
-                        if !editing { Task { try? await SonosController.setTreble(device, to: Int(treble)) } }
+                        if !editing { Task { await vm.attempt("Couldn't set treble") { try await SonosController.setTreble(device, to: Int(treble)) } } }
                     }
                 }
                 Toggle("Loudness", isOn: Binding(
                     get: { loudness },
                     set: { newValue in
                         loudness = newValue
-                        Task { try? await SonosController.setLoudness(device, enabled: newValue) }
+                        Task {
+                            let changed = await vm.attempt("Couldn't change loudness") {
+                                try await SonosController.setLoudness(device, enabled: newValue)
+                            }
+                            if !changed { loudness = !newValue }
+                        }
                     }
                 ))
             }
@@ -42,6 +48,7 @@ struct EQView: View {
         }
         .padding(20)
         .frame(width: 280)
+        .bannerOverlay(vm)
         .task {
             bass = Double((try? await SonosController.getBass(device)) ?? 0)
             treble = Double((try? await SonosController.getTreble(device)) ?? 0)

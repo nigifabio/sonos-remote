@@ -84,8 +84,10 @@ final class IntercomService: NSObject, ObservableObject {
         }
     }
 
-    /// Stops recording and broadcasts the clip to every device in `targets`.
-    func stopAndBroadcast(to targets: [SonosDevice]) {
+    /// Stops recording and broadcasts the clip to `targets`. `groups` is the
+    /// current topology, needed to play once per group rather than once per
+    /// member when a whole group is chosen.
+    func stopAndBroadcast(to targets: [SonosDevice], groups: [SonosGroup]) {
         guard isRecording, let engine, let accumulator else { return }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
@@ -97,8 +99,9 @@ final class IntercomService: NSObject, ObservableObject {
 
         guard !targets.isEmpty else { return }
         let wavData = Self.makeWAVFile(pcm16: accumulator.data, sampleRate: targetFormat.sampleRate, channels: 1)
+        let playbackTargets = AnnouncementService.targets(for: targets, in: groups)
         Task {
-            await broadcast(data: wavData, duration: duration, targets: targets)
+            await broadcast(data: wavData, duration: duration, targets: playbackTargets)
         }
     }
 
@@ -159,37 +162,16 @@ final class IntercomService: NSObject, ObservableObject {
         return header + pcm16
     }
 
-    private func broadcast(data: Data, duration: TimeInterval, targets: [SonosDevice]) async {
+    private func broadcast(data: Data, duration: TimeInterval, targets: [AnnouncementService.Target]) async {
         isBroadcasting = true
         defer { isBroadcasting = false }
-
-        guard !data.isEmpty else {
-            lastError = "No audio was captured"
-            return
-        }
-        let announcementURL: URL
         do {
-            announcementURL = try LocalHTTPServer.shared.serve(data: data)
+            let failed = try await AnnouncementService.play(data, on: targets, duration: duration)
+            if !failed.isEmpty {
+                lastError = "Couldn't play in \(failed.map(\.name).joined(separator: ", "))"
+            }
         } catch {
             lastError = error.localizedDescription
-            return
-        }
-
-        await withTaskGroup(of: Void.self) { group in
-            for device in targets {
-                group.addTask {
-                    await Self.playOnRoom(device, uri: announcementURL.absoluteString, timeout: duration + 5)
-                }
-            }
-        }
-    }
-
-    private static func playOnRoom(_ device: SonosDevice, uri: String, timeout: TimeInterval) async {
-        let snapshot = try? await SonosController.snapshot(device)
-        try? await SonosController.playAnnouncement(on: device, uri: uri)
-        await SonosController.waitUntilStopped(device, timeout: timeout)
-        if let snapshot {
-            await SonosController.restore(device, from: snapshot)
         }
     }
 }

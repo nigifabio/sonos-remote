@@ -43,7 +43,7 @@ struct ContentView: View {
                         Label("Party Mode", systemImage: vm.isPartyMode ? "party.popper.fill" : "party.popper")
                     }
                 }
-                .disabled(vm.isBusyGrouping || (vm.groups.count < 2 && !vm.isPartyMode))
+                .disabled(vm.isBusyGrouping || !vm.canTogglePartyMode)
                 .help(vm.isPartyMode ? "Split rooms back apart" : "Group every room together")
 
                 Button {
@@ -83,13 +83,17 @@ struct ContentView: View {
 
                     Divider()
 
+                    RoutineMenuItems()
+
+                    Divider()
+
                     SettingsLink {
                         Label("Settings", systemImage: "gear")
                     }
                 } label: {
                     Label("More", systemImage: "ellipsis.circle")
                 }
-                .help("Library, Queue, Alarms, Recently Played, and Settings")
+                .help("Library, Queue, Alarms, Recently Played, Routines, and Settings")
             }
         }
         .sheet(isPresented: $showingIntercom) {
@@ -105,6 +109,7 @@ struct ContentView: View {
         .sheet(isPresented: $showingQueue) {
             if let group = vm.selectedGroup {
                 QueueView(group: group)
+                    .environmentObject(vm)
             }
         }
         .sheet(isPresented: $showingAlarms) {
@@ -122,5 +127,6 @@ struct ContentView: View {
                     .padding(.top, 4)
             }
         }
+        .bannerOverlay(vm)
     }
 }

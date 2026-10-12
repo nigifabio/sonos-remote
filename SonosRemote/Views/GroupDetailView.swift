@@ -24,6 +24,7 @@ struct GroupDetailView: View {
         .navigationTitle(group.name)
         .sheet(item: $eqTarget) { device in
             EQView(device: device)
+                .environmentObject(vm)
         }
     }
 
@@ -52,21 +53,101 @@ struct GroupDetailView: View {
                 }
             }
 
-            HStack(spacing: 28) {
+            if track.durationSeconds > 0 {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    SeekBar(
+                        position: vm.position(in: group, at: context.date),
+                        duration: track.durationSeconds,
+                        onSeek: { vm.seek(group, toSeconds: $0) }
+                    )
+                }
+                .frame(maxWidth: 360)
+            }
+
+            HStack(spacing: 22) {
+                Button { vm.toggleShuffle(group) } label: {
+                    Image(systemName: "shuffle")
+                        .foregroundStyle(playMode.shuffle ? Color.accentColor : Color.secondary)
+                }
+                .font(.body)
+                .disabled(!hasQueueControls)
+                .help(playMode.shuffle ? "Shuffle is on" : "Shuffle is off")
+                .accessibilityLabel("Shuffle")
+                .accessibilityValue(playMode.shuffle ? "On" : "Off")
+
                 Button { vm.previous(group) } label: {
                     Image(systemName: "backward.fill")
                 }
+                .accessibilityLabel("Previous track")
                 Button { vm.togglePlayPause(group) } label: {
                     Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                         .font(.system(size: 40))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(isPlaying ? "Pause" : "Play")
                 Button { vm.next(group) } label: {
                     Image(systemName: "forward.fill")
                 }
+                .accessibilityLabel("Next track")
+
+                Button { vm.cycleRepeat(group) } label: {
+                    Image(systemName: playMode.repeatMode == .one ? "repeat.1" : "repeat")
+                        .foregroundStyle(playMode.repeatMode == .off ? Color.secondary : Color.accentColor)
+                }
+                .font(.body)
+                .disabled(!hasQueueControls)
+                .help(repeatHelp)
+                .accessibilityLabel("Repeat")
+                .accessibilityValue(repeatHelp)
             }
             .font(.title2)
             .buttonStyle(.borderless)
+
+            if !inputSources.isEmpty {
+                Menu {
+                    ForEach(inputSources, id: \.title) { source in
+                        Button(source.title, systemImage: source.icon, action: source.action)
+                    }
+                } label: {
+                    Label("Source", systemImage: "arrow.left.arrow.right")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("Play a TV or line-in input")
+            }
+        }
+    }
+
+    private var playMode: PlayMode { vm.playModes[group.id] ?? PlayMode() }
+
+    /// Shuffle and repeat only mean something for a track from a queue —
+    /// not for radio, TV or line-in, which report no duration.
+    private var hasQueueControls: Bool { track.durationSeconds > 0 }
+
+    private var repeatHelp: String {
+        switch playMode.repeatMode {
+        case .off: return "Repeat is off"
+        case .all: return "Repeating the queue"
+        case .one: return "Repeating this track"
+        }
+    }
+
+    private struct InputSource {
+        let title: String
+        let icon: String
+        let action: () -> Void
+    }
+
+    private var inputSources: [InputSource] {
+        group.members.flatMap { device -> [InputSource] in
+            var sources: [InputSource] = []
+            if vm.hasTVInput(device) {
+                sources.append(InputSource(title: "TV — \(device.name)", icon: "tv") { vm.switchToTV(device) })
+            }
+            if vm.hasLineIn(device) {
+                sources.append(InputSource(title: "Line-In — \(device.name)", icon: "cable.connector") { vm.switchToLineIn(device) })
+            }
+            return sources
         }
     }
 

@@ -102,12 +102,25 @@ struct TogglePartyModeShortcutIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         let groups = await SonosController.discoverGroups()
         guard !groups.isEmpty else { return .result() }
-        let allDevices = groups.flatMap(\.members)
-        let isPartyMode = groups.count == 1 && (groups.first?.members.count ?? 0) > 1
-        if isPartyMode {
+        if SonosPartyMode.isOn(groups) {
             await SonosController.ungroupAll(groups)
-        } else if let coordinator = groups.first?.coordinator {
-            await SonosController.partyMode(allDevices: allDevices, coordinator: coordinator)
+        } else {
+            for step in SonosPartyMode.plan(groups, playingGroupIDs: [], preferredGroupID: nil) {
+                await SonosController.partyMode(allDevices: step.joiners, coordinator: step.coordinator)
+            }
+        }
+        return .result()
+    }
+}
+
+struct PauseAllShortcutIntent: AppIntent {
+    static var title: LocalizedStringResource = "Pause All Sonos Rooms"
+
+    func perform() async throws -> some IntentResult {
+        for group in await SonosController.discoverGroups() {
+            guard let coordinator = group.coordinator,
+                  (try? await SonosController.transportState(coordinator)) == .playing else { continue }
+            try? await SonosController.pause(coordinator)
         }
         return .result()
     }

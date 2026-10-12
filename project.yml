@@ -7,8 +7,8 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     ENABLE_HARDENED_RUNTIME: "NO"
-    MARKETING_VERSION: "1.2"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.3"
+    CURRENT_PROJECT_VERSION: "4"
 targets:
   SonosRemote:
     type: application
@@ -108,11 +108,8 @@ targets:
     sources:
       - path: SonosWidget
       - path: SonosRemote/Shared
-      - path: SonosRemote/Models/SonosModels.swift
-      - path: SonosRemote/Networking/XMLHelpers.swift
-      - path: SonosRemote/Networking/SOAPTransport.swift
-      - path: SonosRemote/Networking/SOAPClient.swift
-      - path: SonosRemote/Networking/SSDPDiscovery.swift
+      - path: SonosRemote/Models
+      - path: SonosRemote/Networking
       - path: SonosRemote/Services/SonosController.swift
     entitlements:
       path: SonosWidget/SonosWidget.entitlements
