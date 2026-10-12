@@ -5,6 +5,7 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -48,8 +49,9 @@ jobs:
 
   package:
     name: Installer package
-    # Only for version tags: builds the .pkg and attaches it to the release.
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Builds the .pkg. A version tag also attaches it to the GitHub release;
+    # a manual run ("Run workflow") only keeps it as a downloadable artifact.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: test
     runs-on: macos-latest
     timeout-minutes: 30
@@ -71,11 +73,10 @@ jobs:
 
       - name: Build the installer
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           APP=build/Build/Products/Release/SonosRemote.app
-          BUILT=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")
-          if [ "$BUILT" != "$VERSION" ]; then
-            echo "Tag says $VERSION but the app was built as $BUILT (MARKETING_VERSION in project.yml)"; exit 1
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF_NAME#v}" != "$VERSION" ]]; then
+            echo "Tag says ${GITHUB_REF_NAME#v} but the app was built as $VERSION (MARKETING_VERSION in project.yml)"; exit 1
           fi
           mkdir -p pkgroot/Applications
           cp -R "$APP" pkgroot/Applications/
@@ -87,7 +88,14 @@ jobs:
             --identifier com.fabionigi.SonosRemote.installer --version "$VERSION" "SonosRemote-$VERSION.pkg"
           echo "PKG=SonosRemote-$VERSION.pkg" >> "$GITHUB_ENV"
 
+      - name: Keep the installer as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: ${{ env.PKG }}
+
       - name: Attach to the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
