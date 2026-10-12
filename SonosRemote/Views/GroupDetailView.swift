@@ -105,10 +105,7 @@ struct GroupDetailView: View {
                 }
             }
             VolumeSlider(
-                value: Binding(
-                    get: { Double(vm.groupVolumes[group.id] ?? 0) },
-                    set: { vm.groupVolumes[group.id] = Int($0) }
-                ),
+                value: vm.groupVolumes[group.id] ?? 0,
                 isMuted: vm.groupMutes[group.id] ?? false,
                 onCommit: { vm.setGroupVolume(group, to: $0) },
                 onToggleMute: { vm.toggleGroupMute(group) }
@@ -131,10 +128,7 @@ struct GroupDetailView: View {
                         eqButton(for: device)
                     }
                     VolumeSlider(
-                        value: Binding(
-                            get: { Double(vm.deviceVolumes[device.uuid] ?? 0) },
-                            set: { vm.deviceVolumes[device.uuid] = Int($0) }
-                        ),
+                        value: vm.deviceVolumes[device.uuid] ?? 0,
                         isMuted: vm.deviceMutes[device.uuid] ?? false,
                         onCommit: { vm.setDeviceVolume(device, to: $0) },
                         onToggleMute: { vm.toggleDeviceMute(device) }

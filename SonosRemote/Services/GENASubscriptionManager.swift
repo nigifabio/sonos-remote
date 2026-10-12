@@ -18,7 +18,14 @@ final class GENASubscriptionManager {
     private var started = false
 
     var onTransportChange: ((_ host: String, _ state: TransportState) -> Void)?
+    /// One speaker's own volume/mute (RenderingControl).
     var onVolumeChange: ((_ host: String, _ volume: Int) -> Void)?
+    var onMuteChange: ((_ host: String, _ muted: Bool) -> Void)?
+    /// The whole group's volume/mute, reported by its coordinator
+    /// (GroupRenderingControl). Not the same number as the coordinator's own
+    /// volume: it's derived from every member.
+    var onGroupVolumeChange: ((_ coordinatorHost: String, _ volume: Int) -> Void)?
+    var onGroupMuteChange: ((_ coordinatorHost: String, _ muted: Bool) -> Void)?
 
     func start() {
         guard !started else { return }
@@ -30,22 +37,35 @@ final class GENASubscriptionManager {
         }
     }
 
-    /// Ensures exactly these coordinator hosts have active subscriptions;
-    /// drops any for hosts no longer in the list (a room left/joined a group).
-    func updateSubscriptions(coordinatorHosts: [String]) async {
-        let desired = Set(coordinatorHosts.flatMap { host in
-            [key(host: host, service: .avTransport), key(host: host, service: .renderingControl)]
-        })
+    /// Which (host, service) pairs a topology needs: transport and group
+    /// volume come from each group's coordinator, but a speaker's own volume
+    /// only ever comes from that speaker, so every member needs its own
+    /// RenderingControl subscription.
+    nonisolated static func desiredSubscriptions(coordinatorHosts: [String], memberHosts: [String]) -> [(host: String, service: SonosService)] {
+        var result: [(host: String, service: SonosService)] = []
+        for host in Set(coordinatorHosts).sorted() {
+            result.append((host, .avTransport))
+            result.append((host, .groupRenderingControl))
+        }
+        for host in Set(memberHosts).union(coordinatorHosts).sorted() {
+            result.append((host, .renderingControl))
+        }
+        return result
+    }
 
-        for existingKey in subscriptions.keys where !desired.contains(existingKey) {
+    /// Ensures exactly the subscriptions this topology needs are active;
+    /// drops any that no longer apply (a room left/joined a group).
+    func updateSubscriptions(coordinatorHosts: [String], memberHosts: [String]) async {
+        let wanted = Self.desiredSubscriptions(coordinatorHosts: coordinatorHosts, memberHosts: memberHosts)
+        let desiredKeys = Set(wanted.map { key(host: $0.host, service: $0.service) })
+
+        for existingKey in subscriptions.keys where !desiredKeys.contains(existingKey) {
             await unsubscribe(key: existingKey)
         }
-        for host in coordinatorHosts {
-            for service: SonosService in [.avTransport, .renderingControl] {
-                let k = key(host: host, service: service)
-                if subscriptions[k] == nil {
-                    await subscribe(host: host, service: service)
-                }
+        let missing = wanted.filter { subscriptions[key(host: $0.host, service: $0.service)] == nil }
+        await withTaskGroup(of: Void.self) { taskGroup in
+            for item in missing {
+                taskGroup.addTask { await self.subscribe(host: item.host, service: item.service) }
             }
         }
     }
@@ -152,6 +172,18 @@ final class GENASubscriptionManager {
         let host = String(comps[1])
         let serviceRaw = String(comps[2])
 
+        // GroupRenderingControl reports plain evented variables, not a
+        // LastChange document like the other two services.
+        if serviceRaw == SonosService.groupRenderingControl.rawValue {
+            if let raw = XMLHelpers.value(ofTag: "GroupVolume", in: body), let volume = Int(raw) {
+                onGroupVolumeChange?(host, volume)
+            }
+            if let raw = XMLHelpers.value(ofTag: "GroupMute", in: body) {
+                onGroupMuteChange?(host, raw == "1")
+            }
+            return
+        }
+
         guard let lastChangeEscaped = XMLHelpers.value(ofTag: "LastChange", in: body) else { return }
         let lastChange = XMLHelpers.unescapeXML(lastChangeEscaped)
 
@@ -164,6 +196,9 @@ final class GENASubscriptionManager {
             if let raw = Self.attributeValue(tag: "Volume", attribute: "val", in: lastChange, requiring: ("channel", "Master")),
                let volume = Int(raw) {
                 onVolumeChange?(host, volume)
+            }
+            if let raw = Self.attributeValue(tag: "Mute", attribute: "val", in: lastChange, requiring: ("channel", "Master")) {
+                onMuteChange?(host, raw == "1")
             }
         }
     }

@@ -209,6 +209,13 @@ enum SonosController {
     static func setGroupVolume(_ group: SonosGroup, to value: Int, transport: SOAPTransport = URLSession.shared) async throws {
         guard let coordinator = group.coordinator else { return }
         let clamped = max(0, min(100, value))
+        // Sonos scales each member from the room-to-room ratios captured by
+        // the last SnapshotGroupVolume, not from the rooms' current volumes.
+        // Without a fresh snapshot, a room adjusted on its own since then is
+        // dragged back toward its old ratio (it can go *down* while the group
+        // goes up).
+        _ = try await SOAPClient.call(host: coordinator.host, service: .groupRenderingControl, action: "SnapshotGroupVolume",
+                                       transport: transport)
         _ = try await SOAPClient.call(host: coordinator.host, service: .groupRenderingControl, action: "SetGroupVolume",
                                        arguments: [("InstanceID", "0"), ("DesiredVolume", "\(clamped)")], transport: transport)
     }

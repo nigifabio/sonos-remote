@@ -168,10 +168,7 @@ private struct MenuBarRoomRow: View {
                 Spacer()
             }
             VolumeSlider(
-                value: Binding(
-                    get: { volume },
-                    set: { vm.deviceVolumes[device.uuid] = Int($0) }
-                ),
+                value: Int(volume),
                 isMuted: vm.deviceMutes[device.uuid] ?? false,
                 onCommit: { vm.setDeviceVolume(device, to: $0) },
                 onToggleMute: { vm.toggleDeviceMute(device) },

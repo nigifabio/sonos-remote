@@ -39,6 +39,27 @@ final class SonosControllerVolumeMuteTests: XCTestCase {
         XCTAssertEqual(fake.recordedRequests.first?.soapAction, "\"urn:schemas-upnp-org:service:GroupRenderingControl:1#GetGroupVolume\"")
     }
 
+    /// Sonos scales members from the ratios in the last snapshot. Skipping
+    /// the snapshot made a room that had been adjusted on its own move the
+    /// wrong way (observed on real speakers: group +5, that room -3).
+    func testSetGroupVolumeTakesAFreshSnapshotFirst() async throws {
+        let fake = FakeSOAPTransport()
+        try await SonosController.setGroupVolume(group, to: 44, transport: fake)
+
+        XCTAssertEqual(fake.recordedRequests.compactMap(\.soapAction), [
+            "\"urn:schemas-upnp-org:service:GroupRenderingControl:1#SnapshotGroupVolume\"",
+            "\"urn:schemas-upnp-org:service:GroupRenderingControl:1#SetGroupVolume\""
+        ])
+        XCTAssertEqual(fake.recordedRequests.last?.argument("DesiredVolume"), "44")
+        XCTAssertEqual(fake.recordedRequests.first?.url.host, coordinator.host)
+    }
+
+    func testSetGroupVolumeClampsToZeroAndHundred() async throws {
+        let fake = FakeSOAPTransport()
+        try await SonosController.setGroupVolume(group, to: 250, transport: fake)
+        XCTAssertEqual(fake.recordedRequests.last?.argument("DesiredVolume"), "100")
+    }
+
     func testGroupVolumeReturnsZeroWhenGroupHasNoCoordinator() async throws {
         let leaderless = SonosGroup(id: "g2", coordinatorUUID: "MISSING", members: [device])
         let fake = FakeSOAPTransport()

@@ -77,6 +77,7 @@
 		9791639F5231706D252A0640 /* GENASubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8855A0BA5E8225237500A45E /* GENASubscriptionManager.swift */; };
 		996A6EB05E2DCC1D0FD014C2 /* FakeSOAPTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23740C42E8F633475D318D6D /* FakeSOAPTransport.swift */; };
 		9DF28F899335089CFA866B03 /* SonosModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9660B211A1C84C59988A7FB7 /* SonosModels.swift */; };
+		9E28E6628B4DBD25D7E8D5D3 /* SonosViewModelVolumeEventTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E51E7058B943BB6F3A4CAB2 /* SonosViewModelVolumeEventTests.swift */; };
 		A13379F88016015E4366624B /* SonosControllerTransportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EAAD3C185FE1041C9F5350F /* SonosControllerTransportTests.swift */; };
 		A304A6EAFE70BBE477383B78 /* XMLHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BB5DE142BCC00BF8163010 /* XMLHelpers.swift */; };
 		A38F79E7E465F79F2E0EEA58 /* SonosViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12AB94982FEC37AF7FDD87F4 /* SonosViewModelTests.swift */; };
@@ -166,6 +167,7 @@
 		72A4508FE434EC9DC4953F5C /* LocalHTTPServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHTTPServer.swift; sourceTree = "<group>"; };
 		72B557D3F0CEC3C9101F5BF6 /* SonosViewModelHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosViewModelHistoryTests.swift; sourceTree = "<group>"; };
 		78817C2F0D32E39A5EB8D899 /* SonosWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosWidget.swift; sourceTree = "<group>"; };
+		7E51E7058B943BB6F3A4CAB2 /* SonosViewModelVolumeEventTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonosViewModelVolumeEventTests.swift; sourceTree = "<group>"; };
 		82E84C18D5047B674F4362EC /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		876FD514B112A7B916A67183 /* SonosRemoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SonosRemoteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8855A0BA5E8225237500A45E /* GENASubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GENASubscriptionManager.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 				72B557D3F0CEC3C9101F5BF6 /* SonosViewModelHistoryTests.swift */,
 				1A0DE9E68D88E104FFC527E1 /* SonosViewModelMuteTests.swift */,
 				12AB94982FEC37AF7FDD87F4 /* SonosViewModelTests.swift */,
+				7E51E7058B943BB6F3A4CAB2 /* SonosViewModelVolumeEventTests.swift */,
 				E999A5B4E5F1C24B96BFFAA6 /* WidgetSharedStateTests.swift */,
 				E759E89578FAEFFA042A1240 /* XMLHelpersTests.swift */,
 			);
@@ -592,6 +595,7 @@
 				9741EC3DB98197004E927FAB /* SonosViewModelHistoryTests.swift in Sources */,
 				80284EC0C23DA07777AC1895 /* SonosViewModelMuteTests.swift in Sources */,
 				A38F79E7E465F79F2E0EEA58 /* SonosViewModelTests.swift in Sources */,
+				9E28E6628B4DBD25D7E8D5D3 /* SonosViewModelVolumeEventTests.swift in Sources */,
 				8CBE2CC2E62C368BE376C3E5 /* WidgetSharedStateTests.swift in Sources */,
 				5DC1E357449775DBB35BDCB8 /* XMLHelpersTests.swift in Sources */,
 			);

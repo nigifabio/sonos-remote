@@ -1,19 +1,26 @@
 import SwiftUI
 
 /// A volume slider with a mute button, shared by the main window and the
-/// menu bar tray. Updates its displayed value locally on every drag tick,
-/// but only fires `onCommit` once — when the drag ends. Firing a network
-/// call on every intermediate value (the original approach) spawned dozens
-/// of concurrent SetVolume requests per drag; they could race and land out
-/// of order over the network, so the volume didn't reliably end up where
-/// you actually dragged it to.
+/// menu bar tray.
+///
+/// While a drag is in progress the thumb follows a value held here, not the
+/// model's: speakers keep reporting their volume (live events, the periodic
+/// poll) during a drag, and letting those reports drive the thumb makes it
+/// jump under the pointer. The speaker is told once, when the drag ends —
+/// sending every intermediate value spawned dozens of concurrent SetVolume
+/// requests that could land out of order.
 struct VolumeSlider: View {
-    @Binding var value: Double
+    let value: Int
     let isMuted: Bool
     let onCommit: (Int) -> Void
     let onToggleMute: () -> Void
 
     var compact: Bool = false
+
+    @State private var dragValue: Double?
+    @State private var isEditing = false
+
+    private var shownValue: Double { dragValue ?? Double(value) }
 
     var body: some View {
         HStack(spacing: compact ? 4 : 8) {
@@ -25,14 +32,28 @@ struct VolumeSlider: View {
             .buttonStyle(.plain)
             .help(isMuted ? "Unmute" : "Mute")
 
-            Slider(value: $value, in: 0...100, step: 1, onEditingChanged: { editing in
-                if !editing { onCommit(Int(value)) }
+            Slider(value: Binding(get: { shownValue }, set: { newValue in
+                if isEditing {
+                    dragValue = newValue
+                } else {
+                    // Keyboard and accessibility adjustments change the value
+                    // without a drag session, so there is no "drag ended".
+                    onCommit(Int(newValue))
+                }
+            }), in: 0...100, step: 1, onEditingChanged: { editing in
+                isEditing = editing
+                if editing {
+                    if dragValue == nil { dragValue = Double(value) }
+                } else if let final = dragValue {
+                    dragValue = nil
+                    onCommit(Int(final))
+                }
             })
 
             if !compact {
                 Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary)
             }
-            Text("\(Int(value))")
+            Text("\(Int(shownValue))")
                 .font(compact ? .caption2.monospacedDigit() : .caption.monospacedDigit())
                 .foregroundStyle(compact ? .secondary : .primary)
                 .frame(width: compact ? 20 : 28, alignment: .trailing)

@@ -169,15 +169,82 @@ final class SonosViewModel: ObservableObject {
             self.transportStates[group.id] = state
             Task { await self.refreshNowPlaying(for: group) }
         }
-        manager.onVolumeChange = { [weak self] host, volume in
-            guard let self, let device = self.allDevices.first(where: { $0.host == host }) else { return }
-            self.deviceVolumes[device.uuid] = volume
-            if let group = self.group(containing: device), group.coordinatorUUID == device.uuid {
-                self.groupVolumes[group.id] = volume
-            }
-            self.publishWidgetSnapshot()
-        }
+        manager.onVolumeChange = { [weak self] host, volume in self?.applyDeviceVolume(volume, fromHost: host) }
+        manager.onMuteChange = { [weak self] host, muted in self?.applyDeviceMute(muted, fromHost: host) }
+        manager.onGroupVolumeChange = { [weak self] host, volume in self?.applyGroupVolume(volume, fromCoordinatorHost: host) }
+        manager.onGroupMuteChange = { [weak self] host, muted in self?.applyGroupMute(muted, fromCoordinatorHost: host) }
         manager.start()
+    }
+
+    // MARK: - Volume/mute reported by the speakers (events + poll)
+
+    /// When the user last set each volume from this app, keyed by group ID
+    /// or device UUID. For a moment afterwards that value wins over anything
+    /// a speaker reported before the change landed, so a late event or poll
+    /// result can't yank the slider back to where it was.
+    private var localVolumeChangeAt: [String: Date] = [:]
+    private static let localVolumeHold: TimeInterval = 1.5
+
+    @discardableResult
+    func noteLocalVolumeChange(for key: String) -> Date {
+        let stamp = Date()
+        localVolumeChangeAt[key] = stamp
+        return stamp
+    }
+
+    private func isHoldingLocalVolume(_ key: String) -> Bool {
+        guard let at = localVolumeChangeAt[key] else { return false }
+        return Date().timeIntervalSince(at) < Self.localVolumeHold
+    }
+
+    /// One speaker's own volume. Deliberately never touches the group
+    /// volume, even when the speaker is the group's coordinator: the group
+    /// volume is derived from every member and arrives separately, via
+    /// `applyGroupVolume`.
+    func applyDeviceVolume(_ volume: Int, fromHost host: String) {
+        guard let device = allDevices.first(where: { $0.host == host }),
+              !isHoldingLocalVolume(device.uuid) else { return }
+        deviceVolumes[device.uuid] = volume
+        publishWidgetSnapshot()
+    }
+
+    func applyDeviceMute(_ muted: Bool, fromHost host: String) {
+        guard let device = allDevices.first(where: { $0.host == host }) else { return }
+        deviceMutes[device.uuid] = muted
+    }
+
+    func applyGroupVolume(_ volume: Int, fromCoordinatorHost host: String) {
+        guard let group = groups.first(where: { $0.coordinator?.host == host }),
+              !isHoldingLocalVolume(group.id) else { return }
+        groupVolumes[group.id] = volume
+    }
+
+    func applyGroupMute(_ muted: Bool, fromCoordinatorHost host: String) {
+        guard let group = groups.first(where: { $0.coordinator?.host == host }) else { return }
+        groupMutes[group.id] = muted
+    }
+
+    /// Reads back the group's volume and every member's own volume. A group
+    /// change moves every member, and a member change moves the group, so
+    /// after either one both levels need refreshing — live events normally
+    /// deliver this already; this covers the case where they aren't arriving.
+    private func refreshVolumes(for group: SonosGroup) async {
+        async let groupVolume = try? SonosController.groupVolume(group)
+        let memberVolumes = await withTaskGroup(of: (String, Int?).self) { taskGroup in
+            for member in group.members {
+                taskGroup.addTask { (member.uuid, try? await SonosController.volume(member)) }
+            }
+            var result: [String: Int] = [:]
+            for await (uuid, volume) in taskGroup { result[uuid] = volume }
+            return result
+        }
+        if let groupVolume = await groupVolume, !isHoldingLocalVolume(group.id) {
+            groupVolumes[group.id] = groupVolume
+        }
+        for (uuid, volume) in memberVolumes where !isHoldingLocalVolume(uuid) {
+            deviceVolumes[uuid] = volume
+        }
+        publishWidgetSnapshot()
     }
 
     func refreshTopology() async {
@@ -216,7 +283,10 @@ final class SonosViewModel: ObservableObject {
         if selectedGroupID == nil || !discovered.contains(where: { $0.id == selectedGroupID }) {
             selectedGroupID = discovered.first?.id
         }
-        await GENASubscriptionManager.shared.updateSubscriptions(coordinatorHosts: discovered.compactMap { $0.coordinator?.host })
+        await GENASubscriptionManager.shared.updateSubscriptions(
+            coordinatorHosts: discovered.compactMap { $0.coordinator?.host },
+            memberHosts: discovered.flatMap(\.members).map(\.host)
+        )
         async let generations = SonosController.detectGenerations(for: discovered.flatMap(\.members))
         await refreshNowPlayingAndVolumes()
         deviceGenerations = await generations
@@ -255,11 +325,11 @@ final class SonosViewModel: ObservableObject {
                 recordHistoryIfChanged(group: group, track: track)
             }
             if let state = await state { transportStates[group.id] = state }
-            if let gVolume = await gVolume { groupVolumes[group.id] = gVolume }
+            if let gVolume = await gVolume, !isHoldingLocalVolume(group.id) { groupVolumes[group.id] = gVolume }
             if let gMute = await gMute { groupMutes[group.id] = gMute }
 
             for member in group.members {
-                if let vol = try? await SonosController.volume(member) {
+                if let vol = try? await SonosController.volume(member), !isHoldingLocalVolume(member.uuid) {
                     deviceVolumes[member.uuid] = vol
                 }
                 if let muted = try? await SonosController.isMuted(member) {
@@ -330,12 +400,29 @@ final class SonosViewModel: ObservableObject {
 
     func setGroupVolume(_ group: SonosGroup, to value: Int) {
         groupVolumes[group.id] = value
-        Task { try? await SonosController.setGroupVolume(group, to: value) }
+        let stamp = noteLocalVolumeChange(for: group.id)
+        Task {
+            try? await SonosController.setGroupVolume(group, to: value)
+            await finishLocalVolumeChange(key: group.id, stamp: stamp, group: group)
+        }
     }
 
     func setDeviceVolume(_ device: SonosDevice, to value: Int) {
         deviceVolumes[device.uuid] = value
-        Task { try? await SonosController.setVolume(device, to: value) }
+        let stamp = noteLocalVolumeChange(for: device.uuid)
+        Task {
+            try? await SonosController.setVolume(device, to: value)
+            await finishLocalVolumeChange(key: device.uuid, stamp: stamp, group: group(containing: device))
+        }
+    }
+
+    /// Once the speaker has the new value, release the hold and read back
+    /// the real state — unless the user has already changed it again, in
+    /// which case that newer change owns the hold and the read-back.
+    private func finishLocalVolumeChange(key: String, stamp: Date, group: SonosGroup?) async {
+        guard localVolumeChangeAt[key] == stamp else { return }
+        localVolumeChangeAt[key] = nil
+        if let group { await refreshVolumes(for: group) }
     }
 
     func toggleGroupMute(_ group: SonosGroup) {

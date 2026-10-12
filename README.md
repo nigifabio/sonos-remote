@@ -220,6 +220,17 @@ previous state is restored.
   regex lacked a word boundary after the tag name, so a track's album field
   came back corrupted with the album art URL and surrounding XML. Fixed by
   anchoring with `\b`; covered by a regression test.
+- **Main (group) volume slider showing the wrong number and snapping
+  back**: two causes, both reproduced on real speakers. The live-event
+  handler wrote the *coordinator's own* volume into the group slider, so in
+  a multi-room group it was wrong from launch (coordinator at 34, group
+  actually 38) and jumped away right after a drag (set 43, snapped to 39).
+  And `SetGroupVolume` was sent without the `SnapshotGroupVolume` Sonos
+  expects first, so members were scaled from stale ratios: a room that had
+  been adjusted on its own went *down* (34 → 31) while the group went up.
+  Fixed by snapshotting first, taking group volume from
+  GroupRenderingControl events, subscribing to every room's own volume, and
+  having the slider hold its own value during a drag.
 - **Intercom crash (`EXC_BREAKPOINT` in Core Audio)**: writing an already-
   converted Int16 PCM buffer into an `AVAudioFile` opened with Int16 settings
   crashed, because `AVAudioFile.write(from:)` requires the buffer to match
@@ -294,8 +305,8 @@ versions could differ.
   running on your own devices, but Gatekeeper will warn on a Mac that didn't
   build it (right-click ▸ Open bypasses this once), and the iOS app can only
   run on devices you've registered for local development.
-- GENA subscriptions cover the group coordinator's AVTransport and
-  RenderingControl only; per-satellite-speaker volume and topology changes
+- GENA subscriptions cover each coordinator's AVTransport and
+  GroupRenderingControl plus every room's RenderingControl; topology changes
   (a room joining/leaving a group) are still picked up by the 30s poll, not
   pushed instantly.
 
