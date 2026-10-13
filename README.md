@@ -8,6 +8,25 @@ talks directly to your speakers over local UPnP/SOAP on port 1400, the same
 protocol Sonos' own apps use, and gets instant state updates via UPnP
 eventing (GENA) instead of just polling.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/main-dark.png">
+    <img src="docs/screenshots/main-light.png" width="780" alt="Sonos Remote main window: rooms in the sidebar split into an S2 and an S1 system, group volume, the playing track with seek bar, shuffle and repeat, and a volume slider per room">
+  </picture>
+</p>
+
+| Menu bar tray | Intercom and spoken messages | iPhone |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/tray.png" width="250" alt="Menu bar tray: a group with its own volume slider above its three rooms, Party Mode, and the Pause All, Goodnight and Movie routines"> | <img src="docs/screenshots/intercom.png" width="270" alt="Intercom: choose rooms, hold the microphone button to talk, or type a message to have it read out"> | <img src="docs/screenshots/iphone.png" width="210" alt="The iPhone app showing group volume, the playing track, seek bar and transport controls"> |
+| Each group has one slider above its rooms; routines one click away | Hold to talk, or type a message to be read out | The same controls on iOS and iPadOS |
+
+| Library | Queue | When something fails |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/library.png" width="310" alt="Library browser listing favorites, each with an add-to-queue and a play button"> | <img src="docs/screenshots/queue.png" width="290" alt="Play queue with six tracks that can be reordered or removed"> | <img src="docs/screenshots/banner.png" width="330" alt="A message at the top of the window: Couldn't change shuffle, the speaker says that isn't possible for what's playing now"> |
+| Favorites, playlists, the Sonos library and a folder on your Mac | Reorder, remove, jump to a track | A plain message instead of nothing happening |
+
+<sub>Screenshots show the built-in demo (sample rooms and tracks, no network): `open -a SonosRemote --args --demo`.</sub>
+
 ## Features
 
 - **Auto-discovery** of every room via SSDP + `ZoneGroupTopology`.
@@ -132,6 +151,18 @@ xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemoteiOS \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
+### Demo mode
+
+Start either app with `--demo` to look around without a Sonos system: it
+shows a sample household (an S2 system with a three-room group, plus an S1
+speaker), responds to the controls locally, and never touches the network.
+
+```bash
+open -a SonosRemote --args --demo
+```
+
+The screenshots at the top of this page are taken from it.
+
 ### Tests
 
 ```bash
@@ -139,7 +170,7 @@ xcodegen generate
 xcodebuild -project SonosRemote.xcodeproj -scheme SonosRemoteTests -destination 'platform=macOS,arch=arm64' test
 ```
 
-210 tests, run on every push by GitHub Actions (`.github/workflows/tests.yml`,
+215 tests, run on every push by GitHub Actions (`.github/workflows/tests.yml`,
 which also builds the iOS app). Covers XML/SOAP/DIDL parsing (including regression tests for two
 real bugs — see below), zone-topology parsing against realistic fixtures,
 the WAV file builder used by Intercom, GENA event parsing (`LastChange` →

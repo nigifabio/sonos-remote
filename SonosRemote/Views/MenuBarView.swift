@@ -55,7 +55,8 @@ struct MenuBarView: View {
             }
             if let playlist = vm.lastSpotifyPlaylist, let name = playlist.sourceLabel {
                 recentRow(icon: "music.note.list", title: name, subtitle: "Spotify Playlist")
-            } else if let track = vm.lastSpotifyTrack {
+            } else if let track = vm.lastSpotifyTrack, track.id != vm.lastPlayed?.id {
+                // Only when it isn't the very track already shown above.
                 recentRow(icon: "music.note.list", title: track.title, subtitle: "Last Spotify track")
             }
         }

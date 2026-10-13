@@ -32,12 +32,14 @@ struct BannerView: View {
 extension View {
     /// Shows the view model's banner along the top of this view — used on
     /// the main window and on every sheet, since a sheet covers the window.
+    /// It takes its own strip above the content rather than covering it.
     func bannerOverlay(_ vm: SonosViewModel) -> some View {
-        overlay(alignment: .top) {
+        safeAreaInset(edge: .top, spacing: 0) {
             if let banner = vm.banner {
                 BannerView(banner: banner, onDismiss: vm.dismissBanner)
-                    .padding(.top, 6)
+                    .padding(.top, 8)
                     .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }

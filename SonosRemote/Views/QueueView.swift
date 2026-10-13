@@ -65,6 +65,10 @@ struct QueueView: View {
     }
 
     private func load() async {
+        if vm.isDemo {
+            items = vm.demoQueue
+            return
+        }
         guard let device = group.coordinator else { return }
         isLoading = true
         await vm.attempt("Couldn't read the queue") { items = try await SonosController.getQueue(device) }

@@ -50,8 +50,9 @@ struct IntercomView: View {
         .padding(28)
         .frame(width: 380)
         .task {
-            micGranted = await intercom.requestMicPermission()
-            intercom.refreshMics()
+            // The demo never records, so it never asks for the microphone.
+            micGranted = vm.isDemo ? true : await intercom.requestMicPermission()
+            if !vm.isDemo { intercom.refreshMics() }
             if selectedDeviceIDs.isEmpty {
                 selectedDeviceIDs = Set(vm.allDevices.map(\.uuid))
             }

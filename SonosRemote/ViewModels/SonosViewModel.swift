@@ -32,6 +32,9 @@ final class SonosViewModel: ObservableObject {
     #endif
 
     private var started = false
+    /// Showing built-in sample rooms instead of a real system (`--demo`).
+    /// Nothing is sent to or read from the network in this mode.
+    private(set) var isDemo = false
     private var pollTask: Task<Void, Never>?
     private var bannerClearTask: Task<Void, Never>?
     private var lastLoggedTrack: [String: TrackInfo] = [:] // group ID -> last track we recorded to history
@@ -86,6 +89,7 @@ final class SonosViewModel: ObservableObject {
     /// failing silently. Returns whether it succeeded.
     @discardableResult
     func attempt(_ what: String, _ work: () async throws -> Void) async -> Bool {
+        guard !isDemo else { return true }
         do {
             try await work()
             return true
@@ -266,13 +270,36 @@ final class SonosViewModel: ObservableObject {
         recordHistoryIfChanged(group: group, track: track)
     }
 
+    // MARK: - Demo mode
+
+    /// Replaces everything shown with the given sample state and stops the
+    /// app from talking to the network. Used by `SonosViewModel.demo()`.
+    func installDemoState(
+        groups: [SonosGroup], tracks: [String: TrackInfo], states: [String: TransportState],
+        modes: [String: PlayMode], groupVolumes: [String: Int], deviceVolumes: [String: Int],
+        descriptions: [String: SonosDeviceDescription]
+    ) {
+        isDemo = true
+        self.groups = groups
+        nowPlaying = tracks
+        positionAnchors = tracks.mapValues { _ in Date() }
+        transportStates = states
+        playModes = modes
+        self.groupVolumes = groupVolumes
+        self.deviceVolumes = deviceVolumes
+        deviceDescriptions = descriptions
+        deviceGenerations = descriptions.mapValues { SonosGenerationDetector.detect(from: $0) }
+        selectedGroupID = groups.first?.id
+        errorMessage = nil
+    }
+
     // MARK: - Startup and live events
 
     /// Starts discovery, live events and the safety-net poll. Safe to call
     /// from every window that appears; returns whether this call started it.
     @discardableResult
     func start() -> Bool {
-        guard !started else { return false }
+        guard !started, !isDemo else { return false }
         started = true
         setUpLiveEvents()
         Task { await refreshTopology() }
@@ -378,6 +405,7 @@ final class SonosViewModel: ObservableObject {
     /// group, so after either one both levels need refreshing — live events
     /// normally deliver this already; this covers when they aren't arriving.
     private func refreshLevels(for group: SonosGroup) async {
+        guard !isDemo else { return }
         async let groupVolume = try? SonosController.groupVolume(group)
         async let groupMute = try? SonosController.isGroupMuted(group)
         let members = await withTaskGroup(of: (String, Int?, Bool?).self) { taskGroup in
@@ -406,6 +434,7 @@ final class SonosViewModel: ObservableObject {
 
     /// Full rescan: SSDP discovery, then every household's topology.
     func refreshTopology() async {
+        guard !isDemo else { return }
         isDiscovering = true
         let discovered = await SonosController.discoverGroups(alsoAsking: Self.bootstrapHosts(for: groups))
         isDiscovering = false
@@ -419,6 +448,7 @@ final class SonosViewModel: ObservableObject {
     /// answers. Returns whether the topology changed.
     @discardableResult
     func refreshKnownTopology() async -> Bool {
+        guard !isDemo else { return false }
         let hosts = Self.bootstrapHosts(for: groups)
         guard !hosts.isEmpty else {
             await refreshTopology()
@@ -526,7 +556,7 @@ final class SonosViewModel: ObservableObject {
     /// GENA transport-change event or a transport action, so we don't wait
     /// for the poll to pick up the new track or position.
     private func refreshNowPlaying(for group: SonosGroup) async {
-        guard let coordinator = group.coordinator else { return }
+        guard !isDemo, let coordinator = group.coordinator else { return }
         async let track = try? SonosController.trackInfo(coordinator)
         async let state = try? SonosController.transportState(coordinator)
         async let mode = try? SonosController.playMode(coordinator)
@@ -538,6 +568,7 @@ final class SonosViewModel: ObservableObject {
     }
 
     func refreshNowPlayingAndVolumes() async {
+        guard !isDemo else { return }
         let current = groups
         await withTaskGroup(of: Void.self) { taskGroup in
             for group in current {
@@ -583,6 +614,16 @@ final class SonosViewModel: ObservableObject {
     func togglePlayPause(_ group: SonosGroup) {
         guard let coordinator = group.coordinator else { return }
         let isPlaying = transportStates[group.id] == .playing
+        if isDemo {
+            // Freeze or restart the progress bar where it is.
+            if var track = nowPlaying[group.id] {
+                track.positionSeconds = position(in: group)
+                nowPlaying[group.id] = track
+                positionAnchors[group.id] = Date()
+            }
+            transportStates[group.id] = isPlaying ? .paused : .playing
+            return
+        }
         Task {
             await attempt(isPlaying ? "Couldn't pause \(group.name)" : "Couldn't play in \(group.name)") {
                 if isPlaying {
@@ -640,7 +681,7 @@ final class SonosViewModel: ObservableObject {
             // Some sources (a Spotify Connect session, for one) accept the
             // request and then keep their own shuffle/repeat. Show what the
             // speaker actually did rather than what was asked for.
-            if let actual = try? await SonosController.playMode(coordinator), actual != mode {
+            if !isDemo, let actual = try? await SonosController.playMode(coordinator), actual != mode {
                 playModes[group.id] = actual
                 show(Banner(text: "\(what): that's controlled from the app the music is playing from", isError: true))
             }
@@ -731,6 +772,10 @@ final class SonosViewModel: ObservableObject {
 
     /// Groups every household into one group each, or splits them all.
     func togglePartyMode() {
+        guard !isDemo else {
+            showNotice("Grouping is switched off in the demo")
+            return
+        }
         guard !isBusyGrouping, canTogglePartyMode else { return }
         isBusyGrouping = true
         let current = groups
@@ -776,6 +821,11 @@ final class SonosViewModel: ObservableObject {
         let playing = playingGroups
         guard !playing.isEmpty else {
             showNotice("Nothing is playing")
+            return
+        }
+        if isDemo {
+            for group in playing { transportStates[group.id] = .paused }
+            showNotice(playing.count == 1 ? "Paused \(playing[0].name)" : "Paused \(playing.count) groups")
             return
         }
         Task {

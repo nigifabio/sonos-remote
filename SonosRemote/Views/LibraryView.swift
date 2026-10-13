@@ -87,6 +87,11 @@ struct LibraryView: View {
     }
 
     private func load() async {
+        if vm.isDemo {
+            items = vm.demoLibraryItems(root: root.rawValue, container: path.last)
+            errorMessage = nil
+            return
+        }
         #if os(macOS)
         if root == .myMac {
             isLoading = true

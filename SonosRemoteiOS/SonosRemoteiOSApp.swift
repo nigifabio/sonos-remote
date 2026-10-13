@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct SonosRemoteiOSApp: App {
-    @StateObject private var viewModel = SonosViewModel()
+    @StateObject private var viewModel = SonosViewModel.forLaunch()
     @AppStorage("appTheme") private var themeRaw: String = AppTheme.system.rawValue
 
     private var colorScheme: ColorScheme? {

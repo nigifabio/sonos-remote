@@ -35,6 +35,8 @@ struct SidebarView: View {
         }
         .navigationTitle("Sonos Remote")
         .listStyle(.sidebar)
+        // Wide enough for a room name plus its "grouped" badge.
+        .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 320)
         .overlay {
             if vm.isDiscovering && vm.groups.isEmpty {
                 ProgressView()
